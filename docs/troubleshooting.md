@@ -74,12 +74,12 @@ app-server 端口 19271 已被占用，改用 19272
 
 这是正常行为。
 
-## 找不到 Codex Desktop 引擎
+## 找不到 Codex Desktop 内置 Codex CLI
 
 错误示例：
 
 ```text
-未找到可用的 Codex Desktop 引擎
+未找到可用的 Codex Desktop 内置 Codex CLI
 ```
 
 处理方式：

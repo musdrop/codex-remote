@@ -82,7 +82,7 @@ test("enable 只装 daemon plist、设置 codexCommand、bootstrap 一次", () =
     // 只 daemon plist 落盘；不再装菜单 agent
     assert.ok(existsSync(join(h.dir, "LaunchAgents", `${DAEMON_LABEL}.plist`)));
     assert.ok(!existsSync(join(h.dir, "LaunchAgents", `${MENU_LABEL}.plist`)), "不应再装菜单 agent");
-    // codexCommand 指向 bundle 内引擎（根治版本偏差）
+    // codexCommand 指向 bundle 内 Codex CLI（根治版本偏差）
     const config = loadOrCreateConfig(h.deps.configPath);
     assert.equal(config.codexCommand, "/Applications/Codex Remote.app/Contents/Resources/codex");
     // 只 bootstrap daemon

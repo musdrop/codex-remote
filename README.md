@@ -37,7 +37,7 @@ Relay 中转 remote/relay-worker 或 remote/relay-node
 | `remote/relay-node` | 零依赖 Node relay，适合本地开发或自托管。 |
 | `launcher/` | 桌面托盘/菜单壳可复用的远程后端命令层。 |
 | `native/` | Windows 托盘程序源码与开发启动脚本。 |
-| `src/desktop` | 官方 Codex Desktop 引擎查找、产品配置等桌面端辅助逻辑。 |
+| `src/desktop` | 官方 Codex Desktop 内置 Codex CLI 查找、产品配置等桌面端辅助逻辑。 |
 | `src/deploy` | Cloudflare Worker / Pages 部署脚本辅助逻辑。 |
 | `docs/` | 开发、部署、桌面端、排障等细节文档。 |
 
@@ -60,7 +60,7 @@ python -m http.server 4173 -d remote/web
 npm run remote:daemon -- --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
 ```
 
-如果自动检测不到，给 daemon 传入 Codex Desktop 引擎路径：
+如果自动检测不到，给 daemon 传入 Codex Desktop 内置 Codex CLI 路径：
 
 ```powershell
 npm run remote:daemon -- --codex "C:\Path\To\Codex\app\resources\codex.exe" --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
@@ -125,7 +125,7 @@ config/product.json
 %USERPROFILE%\.codex-remote\remote\daemon.json
 ```
 
-其中保存 daemon 身份、设备令牌元数据、通知渠道、Codex Desktop 引擎路径等本机状态。
+其中保存 daemon 身份、设备令牌元数据、通知渠道、Codex Desktop 内置 Codex CLI 路径等本机状态。
 
 ## 能力边界
 

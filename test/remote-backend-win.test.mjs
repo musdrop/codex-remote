@@ -85,7 +85,7 @@ test("enable：钉 codexCommand、写 UTF-16 BOM 的任务 XML、Create 后 Run"
   try {
     const res = enable(h.deps);
     assert.equal(res.enabled, true);
-    // codexCommand 钉到已解析出的官方 Codex Desktop 引擎
+    // codexCommand 钉到已解析出的官方 Codex Desktop 内置 Codex CLI
     const config = loadOrCreateConfig(h.deps.configPath);
     assert.equal(config.codexCommand, "C:\\Codex\\codex.exe");
     // 任务 XML 与 daemon.json 同目录，且是 UTF-16LE BOM
@@ -156,16 +156,16 @@ test("settings：只允许保存 codexCommand，relay/web 来自 product.json �
   }
 });
 
-test("settings-save：无效 Codex Desktop 引擎路径不会写入配置", async () => {
+test("settings-save：无效 Codex Desktop 内置 Codex CLI 路径不会写入配置", async () => {
   const h = harness({
     resolveCodex: () => {
-      throw new Error("不是可用的 Codex Desktop 引擎");
+      throw new Error("不是可用的 Codex Desktop 内置 Codex CLI");
     },
   });
   try {
     const saved = await run("settings-save", ["C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd"], h.deps);
     assert.equal(saved.ok, false);
-    assert.match(saved.error, /Codex Desktop 引擎/);
+    assert.match(saved.error, /Codex Desktop 内置 Codex CLI/);
     const config = loadOrCreateConfig(h.deps.configPath);
     assert.notEqual(config.codexCommand, "C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd");
   } finally {
@@ -173,16 +173,16 @@ test("settings-save：无效 Codex Desktop 引擎路径不会写入配置", asyn
   }
 });
 
-test("enable：找不到官方 Codex Desktop 引擎时返回结构化错误且不创建计划任务", () => {
+test("enable：找不到官方 Codex Desktop 内置 Codex CLI 时返回结构化错误且不创建计划任务", () => {
   const h = harness({
     resolveCodex: () => {
-      throw new Error("未找到可用的 Codex Desktop 引擎");
+      throw new Error("未找到可用的 Codex Desktop 内置 Codex CLI");
     },
   });
   try {
     const res = enable(h.deps);
     assert.equal(res.enabled, false);
-    assert.match(res.error, /Codex Desktop 引擎/);
+    assert.match(res.error, /Codex Desktop 内置 Codex CLI/);
     assert.equal(h.calls.some((c) => c[0] === "/Create"), false);
   } finally {
     h.cleanup();

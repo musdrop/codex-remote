@@ -7,12 +7,12 @@ export function resolveCodexCommand({
   env = process.env,
   exists = existsSync,
   platform = process.platform,
-  validate = (candidate) => validateCodexDesktopEngine(candidate, { platform }),
+  validate = (candidate) => validateBundledCodexCli(candidate, { platform }),
 } = {}) {
   const explicit = env.CODEX_REMOTE_CODEX?.trim();
   if (explicit) {
     if (!exists(explicit)) {
-      throw new Error(`未找到 Codex Desktop 引擎路径: ${explicit}`);
+      throw new Error(`未找到 Codex Desktop 内置 Codex CLI 路径: ${explicit}`);
     }
     const appCli = officialWindowsAppCli(explicit, exists, platform);
     if (appCli) {
@@ -40,7 +40,7 @@ export function resolveCodexCommand({
 
   throw new Error(
     [
-      "未找到可用的 Codex Desktop 引擎。",
+      "未找到可用的 Codex Desktop 内置 Codex CLI。",
       "请安装官方 Codex Desktop，或在设置中选择官方安装目录里的 app\\resources\\codex.exe。",
       lastInvalid ? `最近跳过的候选: ${lastInvalid}` : "",
     ].filter(Boolean).join(" "),
@@ -51,7 +51,7 @@ export function buildAppServerArgs({ port = 19271 } = {}) {
   return ["app-server", "--listen", `ws://127.0.0.1:${Number(port)}`];
 }
 
-export function validateCodexDesktopEngine(command, {
+export function validateBundledCodexCli(command, {
   platform = process.platform,
   spawn = spawnSync,
   timeoutMs = 5000,
@@ -59,7 +59,7 @@ export function validateCodexDesktopEngine(command, {
   if (platform === "win32" && /\.(cmd|ps1)$/i.test(command)) {
     return {
       ok: false,
-      reason: "Windows cmd/ps1 shim 可能来自 npm 全局命令，不作为 Codex Desktop 引擎使用",
+      reason: "Windows cmd/ps1 shim 可能来自 npm 全局命令，不作为 Codex Desktop 内置 Codex CLI 使用",
     };
   }
 
@@ -118,7 +118,7 @@ function assertValidCommand(command, validate) {
   const validation = normalizeValidation(validate(command));
   if (!validation.ok) {
     throw new Error(
-      `不是可用的 Codex Desktop 引擎: ${command}${validation.reason ? ` (${validation.reason})` : ""}`,
+      `不是可用的 Codex Desktop 内置 Codex CLI: ${command}${validation.reason ? ` (${validation.reason})` : ""}`,
     );
   }
 }

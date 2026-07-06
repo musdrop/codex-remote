@@ -27,11 +27,11 @@ test("resolveCodexCommand rejects an explicit command that cannot run app-server
         platform: "win32",
         validate: () => ({ ok: false, reason: "missing app-server" }),
       }),
-    /不是可用的 Codex Desktop 引擎/,
+    /不是可用的 Codex Desktop 内置 Codex CLI/,
   );
 });
 
-test("resolveCodexCommand maps the official Windows app shell to the bundled Desktop engine", () => {
+test("resolveCodexCommand maps the official Windows app shell to the bundled Codex CLI", () => {
   const result = resolveCodexCommand({
     env: { CODEX_REMOTE_CODEX: "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe", PATH: "" },
     exists: (candidate) =>
@@ -68,7 +68,7 @@ test("resolveCodexCommand skips npm codex.cmd on Windows PATH", () => {
         platform: "win32",
         validate: () => ({ ok: true }),
       }),
-    /未找到可用的 Codex Desktop 引擎/,
+    /未找到可用的 Codex Desktop 内置 Codex CLI/,
   );
 });
 
@@ -109,13 +109,13 @@ test("resolveCodexCommand returns a useful error when codex is missing", () => {
         exists: () => false,
         platform: "win32",
       }),
-    /未找到可用的 Codex Desktop 引擎/,
+    /未找到可用的 Codex Desktop 内置 Codex CLI/,
   );
 });
 
-test("validateCodexDesktopEngine checks for app-server help output", async () => {
-  const { validateCodexDesktopEngine } = await import("../src/desktop/codex-command.mjs");
-  const ok = validateCodexDesktopEngine("D:\\Codex\\codex.exe", {
+test("validateBundledCodexCli checks for app-server help output", async () => {
+  const { validateBundledCodexCli } = await import("../src/desktop/codex-command.mjs");
+  const ok = validateBundledCodexCli("D:\\Codex\\codex.exe", {
     platform: "win32",
     spawn: () => ({
       status: 0,
@@ -127,9 +127,9 @@ test("validateCodexDesktopEngine checks for app-server help output", async () =>
   assert.equal(ok.ok, true);
 });
 
-test("validateCodexDesktopEngine rejects Windows command shims", async () => {
-  const { validateCodexDesktopEngine } = await import("../src/desktop/codex-command.mjs");
-  const result = validateCodexDesktopEngine("C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd", {
+test("validateBundledCodexCli rejects Windows command shims", async () => {
+  const { validateBundledCodexCli } = await import("../src/desktop/codex-command.mjs");
+  const result = validateBundledCodexCli("C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd", {
     platform: "win32",
     spawn: () => {
       throw new Error("should not spawn shim");

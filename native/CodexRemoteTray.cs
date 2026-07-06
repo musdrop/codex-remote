@@ -306,7 +306,7 @@ namespace CodexRemote
                 string message = Backend.Str(en, "error");
                 Alert("开启失败", message);
                 if ((message ?? "").IndexOf("Codex Desktop", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    (message ?? "").IndexOf("引擎", StringComparison.OrdinalIgnoreCase) >= 0)
+                    (message ?? "").IndexOf("Codex CLI", StringComparison.OrdinalIgnoreCase) >= 0)
                     ShowSettings();
                 return false;
             }
@@ -414,7 +414,7 @@ namespace CodexRemote
             form.Show();
         }
 
-        // —— 设置窗：relay/web 由发布包管理，只允许用户配置本机 Codex Desktop 引擎路径 ——
+        // —— 设置窗：relay/web 由发布包管理，只允许用户配置本机 Codex Desktop 内置 Codex CLI 路径 ——
         void ShowSettings()
         {
             var settings = Backend.Call("settings");
@@ -440,7 +440,7 @@ namespace CodexRemote
             var web = new TextBox { Text = Backend.Str(settings, "webUrl") ?? "", Width = 570, ReadOnly = true, Margin = new Padding(0, 2, 0, 10) };
             root.Controls.Add(web);
 
-            root.Controls.Add(new Label { Text = "Codex Desktop 引擎路径", AutoSize = true });
+            root.Controls.Add(new Label { Text = "Codex Desktop 内置 Codex CLI 路径", AutoSize = true });
             var codex = new TextBox { Text = Backend.Str(settings, "codexCommand") ?? "", Width = 570, Margin = new Padding(0, 2, 0, 8) };
             root.Controls.Add(codex);
 
@@ -469,17 +469,17 @@ namespace CodexRemote
                 if (found != null)
                 {
                     codex.Text = found;
-                    Alert("已检测到 Codex Desktop 引擎", found);
+                    Alert("已检测到 Codex Desktop 内置 Codex CLI", found);
                 }
-                else Alert("未找到 Codex Desktop 引擎", Backend.Str(r, "error") ?? "请手动选择 app\\resources\\codex.exe");
+                else Alert("未找到 Codex Desktop 内置 Codex CLI", Backend.Str(r, "error") ?? "请手动选择 app\\resources\\codex.exe");
             };
 
             browse.Click += (s, e) =>
             {
                 using (var dlg = new OpenFileDialog())
                 {
-                    dlg.Title = "选择 Codex Desktop 内置 codex.exe";
-                    dlg.Filter = "Codex Desktop 引擎 (codex.exe)|codex.exe|所有文件 (*.*)|*.*";
+                    dlg.Title = "选择 Codex Desktop 内置 Codex CLI";
+                    dlg.Filter = "Codex Desktop 内置 Codex CLI (codex.exe)|codex.exe|所有文件 (*.*)|*.*";
                     dlg.CheckFileExists = true;
                     if (dlg.ShowDialog(form) == DialogResult.OK) codex.Text = dlg.FileName;
                 }
@@ -493,7 +493,7 @@ namespace CodexRemote
                     Alert("保存失败", Backend.Str(r, "error"));
                     return;
                 }
-                Alert("已保存", "Codex Desktop 引擎路径已保存。");
+                Alert("已保存", "Codex Desktop 内置 Codex CLI 路径已保存。");
                 form.Close();
             };
 

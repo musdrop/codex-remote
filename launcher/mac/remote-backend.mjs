@@ -140,7 +140,7 @@ export function enable(deps) {
   mkdirSync(path.dirname(logPath), { recursive: true });
   mkdirSync(deps.launchAgentsDir, { recursive: true });
 
-  // 写入 daemon 配置：codexCommand 指向 bundle 内同版本引擎（根治版本偏差）
+  // 写入 daemon 配置：codexCommand 指向 bundle 内同版本 Codex CLI（根治版本偏差）
   const config = loadOrCreateConfig(deps.configPath);
   config.codexCommand = b.codexCli;
   saveConfig(deps.configPath, config);

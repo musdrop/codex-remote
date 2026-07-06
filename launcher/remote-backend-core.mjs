@@ -159,7 +159,7 @@ export function settings(deps) {
 
 export function settingsSave(deps, codexCommand) {
   const command = String(codexCommand ?? "").trim();
-  if (!command) return { ok: false, error: "Codex Desktop 引擎路径不能为空" };
+  if (!command) return { ok: false, error: "Codex Desktop 内置 Codex CLI 路径不能为空" };
   let resolved;
   try {
     resolved = deps.resolveCodex?.({
@@ -180,7 +180,7 @@ export function settingsSave(deps, codexCommand) {
 export function codexDetect(deps) {
   try {
     const found = deps.resolveCodex?.({ platform: process.platform });
-    return found?.command ? { ok: true, codexCommand: found.command, source: found.source } : { ok: false, error: "未找到可用的 Codex Desktop 引擎" };
+    return found?.command ? { ok: true, codexCommand: found.command, source: found.source } : { ok: false, error: "未找到可用的 Codex Desktop 内置 Codex CLI" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
