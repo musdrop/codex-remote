@@ -13,6 +13,8 @@ export const PAIR_TOKEN_TTL_MS = 5 * 60 * 1000;
 // 不兼容变更时递增：daemon 与 client 在 auth 握手交换，一端过旧则提示升级。
 export const APP_PROTOCOL = 1;
 const LEGACY_CONFIG_DIR = ".codex" + "-zh";
+const DEFAULT_RELAY_URL = "wss://YOUR-RELAY-HOST";
+const DEFAULT_WEB_URL = "https://YOUR-PAGES-PROJECT.pages.dev/";
 
 export function defaultConfigPath() {
   return resolveDefaultConfigPath();
@@ -36,12 +38,13 @@ export function sha256(value) {
   return createHash("sha256").update(value).digest("base64url");
 }
 
-export function loadOrCreateConfig(path = defaultConfigPath()) {
+export function loadOrCreateConfig(path = defaultConfigPath(), { productConfig = null } = {}) {
   if (existsSync(path)) {
     // 去掉可能的 UTF-8 BOM：Windows 上用 PowerShell/记事本等改写配置常带 BOM，
     // Node 以 "utf8" 读不会自动剥离，JSON.parse 会在首字符处报错、daemon 直接崩。
     const raw = readFileSync(path, "utf8");
-    return JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw);
+    const config = JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw);
+    return applyProductConfig(path, config, productConfig);
   }
   const keys = generateKeyPair();
   const config = {
@@ -50,8 +53,8 @@ export function loadOrCreateConfig(path = defaultConfigPath()) {
     daemonName: hostname(),
     publicKey: keys.publicKeyRaw.toString("base64"),
     privateKeyPem: keys.privateKeyPem,
-    relayUrl: "wss://YOUR-RELAY-HOST", // 用 start --relay 或桌面端设置为自建 Worker 地址
-    webUrl: "https://YOUR-PAGES-PROJECT.pages.dev/", // 配对链接指向的网页端
+    relayUrl: productConfig?.relayUrl || DEFAULT_RELAY_URL,
+    webUrl: productConfig?.webUrl || DEFAULT_WEB_URL,
 
     codexCommand: "codex",
     appServerPort: 19271,
@@ -61,6 +64,19 @@ export function loadOrCreateConfig(path = defaultConfigPath()) {
     pairTokens: [],
   };
   saveConfig(path, config);
+  return config;
+}
+
+function applyProductConfig(path, config, productConfig) {
+  if (!productConfig) return config;
+  let changed = false;
+  for (const key of ["relayUrl", "webUrl"]) {
+    if (productConfig[key] && config[key] !== productConfig[key]) {
+      config[key] = productConfig[key];
+      changed = true;
+    }
+  }
+  if (changed) saveConfig(path, config);
   return config;
 }
 

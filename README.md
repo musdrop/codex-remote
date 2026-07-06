@@ -243,7 +243,25 @@ Windows 桌面端现在支持构建便携目录。它会产出一个可直接复
 - `CodexRemoteTray.exe`：托盘程序。
 - `Start-CodexRemote.cmd`：双击启动托盘。
 - `node/node.exe`：随包携带的 Node 运行时。
-- `launcher/`、`remote/`、`src/`：托盘后端与 daemon 源码。
+- `config/product.json`：发布者配置，写入你部署好的 relay 与网页地址。
+- `launcher/`、`remote/daemon/src/`、`src/desktop/`：托盘后端、daemon 与必要工具代码。
+
+构建前先编辑：
+
+```text
+config/product.json
+```
+
+示例：
+
+```json
+{
+  "relayUrl": "wss://relay.example.com",
+  "webUrl": "https://remote.example.com/"
+}
+```
+
+这两个地址属于发布者配置，会被复制进便携目录。普通用户在托盘设置里只能查看，不能修改。
 
 构建命令：
 
@@ -266,10 +284,12 @@ dist\desktop\windows\CodexRemote\Start-CodexRemote.cmd
 启动后会出现系统托盘图标。右键托盘图标可以：
 
 - 查看远程是否启用/运行。
+- 设置 Codex CLI 路径。
 - 扫码配对手机。
 - 查看和撤销已配对设备。
 - 配置通知渠道。
 - 停用远程。
+- 退出并停止远程。
 
 第一次点“扫码配对手机”时，托盘会尝试启用 daemon。独立版不会使用内置 Codex，而是查找用户机器上的官方 Codex CLI：
 
@@ -277,7 +297,13 @@ dist\desktop\windows\CodexRemote\Start-CodexRemote.cmd
 - 其次复用 daemon 配置中的 `codexCommand`。
 - 最后从 `PATH` 查找 `codex.exe`。
 
-如果找不到官方 Codex CLI，托盘会弹出后端返回的错误，不会创建计划任务。
+如果找不到官方 Codex CLI，托盘会弹出后端返回的错误并打开“设置…”窗口。用户可以点击“自动检测”，也可以手动选择官方 Codex 安装目录里的 `app\resources\codex.exe`。保存后会写入用户配置：
+
+```text
+%USERPROFILE%\.codex-remote\remote\daemon.json
+```
+
+托盘里的“停用远程”和“退出并停止远程”都会停止 Windows 计划任务，并兜底终止当前便携目录/源码目录下残留的 daemon 进程树；退出托盘不会让远程服务继续在后台运行。
 
 开发态也可以直接启动托盘：
 
@@ -286,6 +312,38 @@ npm run desktop:win:dev
 ```
 
 这个命令会编译 `native/CodexRemoteTray.cs`，然后用当前源码目录里的 `launcher/win/remote-backend.mjs` 启动托盘，适合边改边测。
+再次运行时，它会先结束当前源码目录里的旧托盘实例，再重新编译和启动，避免开发时误用旧进程。
+
+### 开发态连接排查
+
+如果便携目录能正常连接，但 `npm run desktop:win:dev` 打开的网页提示无法连接电脑，先按下面顺序排查：
+
+1. 确认开发后端生成的配对链接是否正确：
+
+   ```powershell
+   node launcher\win\remote-backend.mjs pair
+   ```
+
+   输出的链接应该以你的线上前端开头，例如 `https://remote.example.com/#d=...`。其中 hash 里会携带 relay 地址。
+
+2. 确认 relay 能看到这台电脑。浏览器前端连接的路径形如：
+
+   ```text
+   wss://relay.example.com/v1/client/<daemonId>
+   ```
+
+   若 daemon 正常在线，浏览器应能建立 WebSocket 并完成鉴权。
+
+3. 如果控制台出现 `Failed to load resource: net::ERR_BLOCKED_BY_CLIENT`，这通常不是 Worker 或 daemon 返回的错误，而是当前浏览器的扩展、广告拦截、隐私防护或安全软件拦截了某个资源或 WebSocket。请用无痕窗口、禁用扩展，或换一个浏览器打开新生成的配对链接再试。
+
+4. 如果无痕窗口可用，而普通窗口不可用，清理前端站点数据后重新扫码：
+
+   ```text
+   localStorage: czr-daemons / czr-active / czr-client / czr-last
+   service worker cache: codex-remote-shell-v1
+   ```
+
+5. 如果仍然连不上，请在浏览器 DevTools 的 Network 面板里点开失败请求，把被拦截的完整 URL 复制出来。只看到 `ERR_BLOCKED_BY_CLIENT` 不足以判断是静态资源、Service Worker，还是 WebSocket 被拦截。
 
 ## 构建桌面便携目录
 
@@ -309,6 +367,7 @@ dist/desktop/windows/CodexRemote
 
 - 前端直接部署 `remote/web` 目录。
 - Cloudflare Worker 直接在 `remote/relay-worker` 目录执行 `npx wrangler deploy`。
+- Windows 桌面便携目录只打包运行 daemon 所需的文件，不包含 `remote/web`、`remote/relay-worker`、`remote/relay-node`。
 
 也可以使用项目根目录的部署脚本：
 

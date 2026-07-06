@@ -1,6 +1,24 @@
 // 拉起并驱动 codex app-server（JSON-RPC over WebSocket）
 import { spawn } from "node:child_process";
+import { createServer } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
+
+export async function findAvailablePort(startPort, { attempts = 20 } = {}) {
+  for (let port = Number(startPort); port < Number(startPort) + attempts; port += 1) {
+    if (await canListen(port)) return port;
+  }
+  throw new Error(`app-server 端口不可用：${startPort}-${Number(startPort) + attempts - 1} 均被占用`);
+}
+
+function canListen(port) {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.once("error", () => resolve(false));
+    server.listen(port, "127.0.0.1", () => {
+      server.close(() => resolve(true));
+    });
+  });
+}
 
 export class AppServer {
   #command;
@@ -33,6 +51,11 @@ export class AppServer {
 
   async start() {
     this.#closed = false;
+    const requestedPort = this.#port;
+    this.#port = await findAvailablePort(this.#port);
+    if (this.#port !== requestedPort) {
+      this.#log(`app-server 端口 ${requestedPort} 已被占用，改用 ${this.#port}`);
+    }
     await this.#spawnAndConnect();
   }
 

@@ -257,16 +257,18 @@ namespace CodexRemote
                 AddItem(m, "扫码配对…", (s, e) => DoPair());
                 AddItem(m, "已配对设备…", (s, e) => DoDevices());
                 AddItem(m, "通知设置…", (s, e) => DoNotify());
+                AddItem(m, "设置…", (s, e) => DoSettings());
                 m.Items.Add(new ToolStripSeparator());
                 AddItem(m, "停用远程", (s, e) => DoDisable());
             }
             else
             {
                 // 未开启态极简：只暴露入口动作，其余（设备/通知/停用）开启后才有意义
+                AddItem(m, "设置…", (s, e) => DoSettings());
                 AddItem(m, "扫码配对手机…", (s, e) => DoPair());
             }
             m.Items.Add(new ToolStripSeparator());
-            AddItem(m, enabled ? "退出托盘（远程继续运行）" : "退出托盘", (s, e) => DoQuit());
+            AddItem(m, "退出并停止远程", (s, e) => DoQuit());
         }
 
         static void AddInfo(ContextMenuStrip m, string text)
@@ -294,7 +296,14 @@ namespace CodexRemote
             if (!Backend.Bool(Backend.Call("status"), "enabled"))
             {
                 var en = Backend.Call("enable");
-                if (Backend.HasKey(en, "error")) { Alert("开启失败", Backend.Str(en, "error")); return; } // daemon 起不来就别出码
+                if (Backend.HasKey(en, "error"))
+                {
+                    string message = Backend.Str(en, "error");
+                    Alert("开启失败", message);
+                    if ((message ?? "").IndexOf("Codex CLI", StringComparison.OrdinalIgnoreCase) >= 0)
+                        ShowSettings();
+                    return;
+                } // daemon 起不来就别出码
                 RefreshIcon(Backend.Call("status"));
             }
             var res = Backend.Call("pair");
@@ -308,8 +317,10 @@ namespace CodexRemote
             ShowDevices(res);
         }
         void DoNotify() { ShowNotify(); }
+        void DoSettings() { ShowSettings(); }
         void DoQuit()
         {
+            Backend.Call("disable");
             tray.Visible = false;
             tray.Dispose();
             ExitThread();
@@ -380,6 +391,92 @@ namespace CodexRemote
                 Flash((Button)s, "复制邀请链接（一次性 · 5 分钟）");
             };
             addCentered(copyOnce, 0);
+
+            form.Show();
+        }
+
+        // —— 设置窗：relay/web 由发布包管理，只允许用户配置本机 Codex CLI 路径 ——
+        void ShowSettings()
+        {
+            var settings = Backend.Call("settings");
+            var form = MakeWindow("Codex Remote 设置", 500, 360);
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 10,
+                Padding = new Padding(18, 16, 18, 16),
+            };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            for (int i = 0; i < 10; i++) root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            form.Controls.Add(root);
+
+            root.Controls.Add(new Label { Text = "连接配置", Font = FontSectionBold, AutoSize = true, Margin = new Padding(0, 0, 0, 8) });
+
+            root.Controls.Add(new Label { Text = "Relay 地址（由发布包配置）", AutoSize = true });
+            var relay = new TextBox { Text = Backend.Str(settings, "relayUrl") ?? "", Width = 440, ReadOnly = true, Margin = new Padding(0, 2, 0, 10) };
+            root.Controls.Add(relay);
+
+            root.Controls.Add(new Label { Text = "网页地址（由发布包配置）", AutoSize = true });
+            var web = new TextBox { Text = Backend.Str(settings, "webUrl") ?? "", Width = 440, ReadOnly = true, Margin = new Padding(0, 2, 0, 10) };
+            root.Controls.Add(web);
+
+            root.Controls.Add(new Label { Text = "Codex CLI 路径", AutoSize = true });
+            var codex = new TextBox { Text = Backend.Str(settings, "codexCommand") ?? "codex", Width = 440, Margin = new Padding(0, 2, 0, 8) };
+            root.Controls.Add(codex);
+
+            var row = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, Width = 440, Height = 38, WrapContents = false };
+            var detect = new Button { Text = "自动检测", Width = 92, Height = 30, FlatStyle = FlatStyle.System };
+            var browse = new Button { Text = "选择…", Width = 80, Height = 30, FlatStyle = FlatStyle.System };
+            var save = new Button { Text = "保存", Width = 80, Height = 30, FlatStyle = FlatStyle.System };
+            row.Controls.Add(detect);
+            row.Controls.Add(browse);
+            row.Controls.Add(save);
+            root.Controls.Add(row);
+
+            root.Controls.Add(new Label
+            {
+                Text = "如果自动检测失败，请选择官方 Codex 安装目录里的 app\\resources\\codex.exe。",
+                ForeColor = Color.Gray,
+                AutoSize = true,
+                MaximumSize = new Size(440, 0),
+                Margin = new Padding(0, 4, 0, 0),
+            });
+
+            detect.Click += (s, e) =>
+            {
+                var r = Backend.Call("codex-detect");
+                string found = Backend.Str(r, "codexCommand");
+                if (found != null)
+                {
+                    codex.Text = found;
+                    Alert("已检测到 Codex", found);
+                }
+                else Alert("未找到 Codex", Backend.Str(r, "error") ?? "请手动选择 codex.exe");
+            };
+
+            browse.Click += (s, e) =>
+            {
+                using (var dlg = new OpenFileDialog())
+                {
+                    dlg.Title = "选择 codex.exe";
+                    dlg.Filter = "Codex CLI (codex.exe)|codex.exe|所有文件 (*.*)|*.*";
+                    dlg.CheckFileExists = true;
+                    if (dlg.ShowDialog(form) == DialogResult.OK) codex.Text = dlg.FileName;
+                }
+            };
+
+            save.Click += (s, e) =>
+            {
+                var r = Backend.Call("settings-save", codex.Text.Trim());
+                if (Backend.HasKey(r, "error"))
+                {
+                    Alert("保存失败", Backend.Str(r, "error"));
+                    return;
+                }
+                Alert("已保存", "Codex CLI 路径已保存。");
+                form.Close();
+            };
 
             form.Show();
         }

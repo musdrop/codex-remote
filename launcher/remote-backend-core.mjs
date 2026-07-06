@@ -33,8 +33,12 @@ import {
 } from "../remote/daemon/src/config.mjs";
 import { Notifier, redact } from "../remote/daemon/src/notify.mjs";
 
+function loadConfig(deps) {
+  return loadOrCreateConfig(deps.configPath, { productConfig: deps.productConfig });
+}
+
 export function status(deps) {
-  const config = existsSync(deps.configPath) ? loadOrCreateConfig(deps.configPath) : null;
+  const config = existsSync(deps.configPath) ? loadConfig(deps) : null;
   return {
     enabled: deps.isEnabled(deps),
     running: deps.isRunning(deps),
@@ -46,18 +50,18 @@ export function status(deps) {
 
 // 永久链接：内嵌长期设备令牌，扫码/点击即永久连接（可在「已配对设备」撤销）
 export function pair(deps) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadConfig(deps);
   if (!config.relayUrl) return { error: "未配置 relay" };
   const { deviceToken } = issueDeviceToken(deps.configPath, config);
-  return { url: deviceUrl(loadOrCreateConfig(deps.configPath), deviceToken) };
+  return { url: deviceUrl(loadConfig(deps), deviceToken) };
 }
 
 // 一次性链接：5 分钟内有效、仅可用一次（适合临时发出去的场景）
 export function pairOnce(deps) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadConfig(deps);
   if (!config.relayUrl) return { error: "未配置 relay" };
   const token = issuePairToken(deps.configPath, config);
-  return { url: pairUrl(loadOrCreateConfig(deps.configPath), token) };
+  return { url: pairUrl(loadConfig(deps), token) };
 }
 
 // 在线观众数：daemon 在观众上下线时把按 deviceId 聚合的计数节流写入 viewer-status.json
@@ -73,7 +77,7 @@ function readViewerStatus(deps) {
 }
 
 export function listDevices(deps) {
-  const config = existsSync(deps.configPath) ? loadOrCreateConfig(deps.configPath) : { devices: [] };
+  const config = existsSync(deps.configPath) ? loadConfig(deps) : { devices: [] };
   const viewers = readViewerStatus(deps);
   return {
     devices: (config.devices ?? []).map((d) => ({
@@ -94,7 +98,7 @@ export function listDevices(deps) {
 }
 
 export function revokeDevice(deps, deviceId) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadConfig(deps);
   const before = (config.devices ?? []).length;
   config.devices = (config.devices ?? []).filter((d) => d.deviceId !== deviceId);
   saveConfig(deps.configPath, config);
@@ -106,7 +110,7 @@ export function revokeDevice(deps, deviceId) {
 // 因 daemon 每次鉴权重读配置）。不影响任何已连过的设备。
 // 围观链接除外：作品集永久链接"生成后长期无人点开"是合法状态，静默 prune 等于暗杀分享链接。
 export function pruneUnusedDevices(deps) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadConfig(deps);
   const before = (config.devices ?? []).length;
   config.devices = (config.devices ?? []).filter((d) => d.lastSeenAt || d.role === "viewer");
   const removed = before - config.devices.length;
@@ -115,12 +119,12 @@ export function pruneUnusedDevices(deps) {
 }
 
 export function notifyList(deps) {
-  const config = existsSync(deps.configPath) ? loadOrCreateConfig(deps.configPath) : { notifiers: [] };
+  const config = existsSync(deps.configPath) ? loadConfig(deps) : { notifiers: [] };
   return { notifiers: (config.notifiers ?? []).map((n, index) => ({ index, label: redact(n) })) };
 }
 
 export function notifyAdd(deps, entry) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadConfig(deps);
   config.notifiers = config.notifiers ?? [];
   config.notifiers.push(entry);
   saveConfig(deps.configPath, config);
@@ -128,7 +132,7 @@ export function notifyAdd(deps, entry) {
 }
 
 export function notifyRemove(deps, index) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadConfig(deps);
   config.notifiers = config.notifiers ?? [];
   if (index < 0 || index >= config.notifiers.length) return { ok: false };
   config.notifiers.splice(index, 1);
@@ -137,10 +141,40 @@ export function notifyRemove(deps, index) {
 }
 
 export async function notifyTest(deps) {
-  const config = existsSync(deps.configPath) ? loadOrCreateConfig(deps.configPath) : { notifiers: [] };
+  const config = existsSync(deps.configPath) ? loadConfig(deps) : { notifiers: [] };
   const notifier = new Notifier(config.notifiers ?? [], { fetch: deps.fetch, log: deps.log });
   await notifier.send("Codex 远程测试", "如果你收到这条，说明通知渠道配置成功 ✅");
   return { ok: true, count: notifier.count };
+}
+
+export function settings(deps) {
+  const config = loadConfig(deps);
+  return {
+    relayUrl: config.relayUrl ?? "",
+    webUrl: config.webUrl ?? "",
+    codexCommand: config.codexCommand ?? "codex",
+    productManaged: Boolean(deps.productConfig?.relayUrl || deps.productConfig?.webUrl),
+  };
+}
+
+export function settingsSave(deps, codexCommand) {
+  const command = String(codexCommand ?? "").trim();
+  if (!command) return { ok: false, error: "Codex CLI 路径不能为空" };
+  const config = loadConfig(deps);
+  config.codexCommand = command;
+  if (deps.productConfig?.relayUrl) config.relayUrl = deps.productConfig.relayUrl;
+  if (deps.productConfig?.webUrl) config.webUrl = deps.productConfig.webUrl;
+  saveConfig(deps.configPath, config);
+  return { ok: true };
+}
+
+export function codexDetect(deps) {
+  try {
+    const found = deps.resolveCodex?.({ platform: process.platform });
+    return found?.command ? { ok: true, codexCommand: found.command, source: found.source } : { ok: false, error: "未找到 Codex CLI" };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // —— CLI 分发 —— enable/disable 走平台钩子（launchd / 计划任务），其余纯逻辑
@@ -158,6 +192,9 @@ export async function run(command, rest, deps) {
     case "notify-add": return notifyAdd(deps, JSON.parse(readFileSync(rest[0], "utf8")));
     case "notify-remove": return notifyRemove(deps, Number(rest[0]));
     case "notify-test": return notifyTest(deps);
+    case "settings": return settings(deps);
+    case "settings-save": return settingsSave(deps, rest[0]);
+    case "codex-detect": return codexDetect(deps);
     default: return { error: `未知子命令: ${command}` };
   }
 }

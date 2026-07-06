@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync, existsSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -30,6 +30,8 @@ function harness(overrides = {}) {
     nodePath: "C:\\Node\\node.exe",
     userId: "TESTPC\\Tester",
     resolveCodex: () => ({ command: "C:\\Codex\\codex.exe", source: "path" }),
+    listProcesses: () => [],
+    killProcessTree: () => {},
     runSchtasks: (args) => {
       calls.push(args);
       if (args[0] === "/Create") state.taskExists = true;
@@ -108,6 +110,52 @@ test("enable：钉 codexCommand、写 UTF-16 BOM 的任务 XML、Create 后 Run"
   }
 });
 
+test("enable：从便携目录 product.json 写入发布者 relay/web 配置", () => {
+  const root = mkdtempSync(join(tmpdir(), "codex-remote-install-"));
+  mkdirSync(join(root, "config"), { recursive: true });
+  writeFileSync(
+    join(root, "config", "product.json"),
+    JSON.stringify({ relayUrl: "wss://relay.example.com", webUrl: "https://remote.example.com/" }),
+  );
+  const h = harness({ installRoot: root });
+  try {
+    const res = enable(h.deps);
+    assert.equal(res.enabled, true);
+    const config = loadOrCreateConfig(h.deps.configPath);
+    assert.equal(config.relayUrl, "wss://relay.example.com");
+    assert.equal(config.webUrl, "https://remote.example.com/");
+  } finally {
+    h.cleanup();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("settings：只允许保存 codexCommand，relay/web 来自 product.json 且只读返回", async () => {
+  const root = mkdtempSync(join(tmpdir(), "codex-remote-install-"));
+  mkdirSync(join(root, "config"), { recursive: true });
+  writeFileSync(
+    join(root, "config", "product.json"),
+    JSON.stringify({ relayUrl: "wss://relay.example.com", webUrl: "https://remote.example.com/" }),
+  );
+  const h = harness({ installRoot: root });
+  try {
+    const before = await run("settings", [], h.deps);
+    assert.equal(before.relayUrl, "wss://relay.example.com");
+    assert.equal(before.webUrl, "https://remote.example.com/");
+    assert.equal(before.codexCommand, "codex");
+
+    const saved = await run("settings-save", ["C:\\Codex\\codex.exe"], h.deps);
+    assert.equal(saved.ok, true);
+    const config = loadOrCreateConfig(h.deps.configPath);
+    assert.equal(config.codexCommand, "C:\\Codex\\codex.exe");
+    assert.equal(config.relayUrl, "wss://relay.example.com");
+    assert.equal(config.webUrl, "https://remote.example.com/");
+  } finally {
+    h.cleanup();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("enable：找不到官方 Codex CLI 时返回结构化错误且不创建计划任务", () => {
   const h = harness({
     resolveCodex: () => {
@@ -136,6 +184,37 @@ test("disable：End 再 Delete /F", () => {
     const del = h.calls.find((c) => c[0] === "/Delete" && c.includes(TASK_NAME));
     assert.ok(del.includes(TASK_NAME) && del.includes("/F"));
     assert.ok(h.calls.some((c) => c[0] === "/Delete" && c.includes(LEGACY_TASK_NAMES[0])));
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("disable：兜底终止当前安装目录残留的 daemon 进程树", () => {
+  const killed = [];
+  const h = harness({
+    listProcesses: () => [
+      {
+        ProcessId: 101,
+        Name: "node.exe",
+        CommandLine: '"C:\\Node\\node.exe" "D:\\DevelopProgram\\codex-remote\\remote\\daemon\\src\\main.mjs" start',
+      },
+      {
+        ProcessId: 102,
+        Name: "codex.exe",
+        CommandLine: "C:\\Codex\\codex.exe app-server --listen ws://127.0.0.1:19271",
+      },
+      {
+        ProcessId: 201,
+        Name: "node.exe",
+        CommandLine: '"C:\\Node\\node.exe" "D:\\Other\\remote\\daemon\\src\\main.mjs" start',
+      },
+    ],
+    killProcessTree: (pid) => killed.push(pid),
+  });
+  try {
+    const res = disable(h.deps);
+    assert.equal(res.enabled, false);
+    assert.deepEqual(killed, [101]);
   } finally {
     h.cleanup();
   }

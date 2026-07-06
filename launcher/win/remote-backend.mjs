@@ -15,6 +15,7 @@ import { loadOrCreateConfig, saveConfig, defaultConfigPath } from "../../remote/
 import { run as coreRun } from "../remote-backend-core.mjs";
 import { writeQrBmp } from "./qr-bmp.mjs";
 import { resolveCodexCommand } from "../../src/desktop/codex-command.mjs";
+import { loadProductConfig } from "../../src/desktop/product-config.mjs";
 
 export const TASK_NAME = "CodexRemote";
 export const LEGACY_TASK_NAMES = ["Codex" + "ZhRemote"];
@@ -22,7 +23,7 @@ const APP_SERVER_PORT = 19271; // daemon 拉起的 codex app-server；连得上=
 
 // —— install 内路径解析（backend 位于 <install>\launcher\win）——
 export function resolveInstallRoot(env = process.env, moduleUrl = import.meta.url) {
-  if (env.CODEX_ZH_APP_ROOT) return env.CODEX_ZH_APP_ROOT;
+  if (env.CODEX_REMOTE_APP_ROOT) return env.CODEX_REMOTE_APP_ROOT;
   return path.resolve(path.dirname(fileURLToPath(moduleUrl)), "..", "..");
 }
 
@@ -125,14 +126,18 @@ function probePortSync(port) {
 // —— makeDeps：core 依赖 + 注入 schtasks 版平台钩子 ——
 export function makeDeps(overrides = {}) {
   const home = overrides.homeDir || homedir();
+  const installRoot = overrides.installRoot || resolveInstallRoot();
   return {
     configPath: overrides.configPath || defaultConfigPath(),
-    installRoot: overrides.installRoot || resolveInstallRoot(),
+    installRoot,
+    productConfig: overrides.productConfig || loadProductConfig(installRoot),
     homeDir: home,
     nodePath: overrides.nodePath || process.execPath,
     resolveCodex: overrides.resolveCodex || ((opts = {}) => resolveCodexCommand(opts)),
     userId: overrides.userId || currentUserId(),
     runSchtasks: overrides.runSchtasks || ((args) => spawnSync("schtasks", args, { encoding: "utf8" })),
+    listProcesses: overrides.listProcesses || listWindowsProcesses,
+    killProcessTree: overrides.killProcessTree || ((pid) => spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { encoding: "utf8" })),
     probePort: overrides.probePort || (() => probePortSync(APP_SERVER_PORT)),
     fetch: overrides.fetch || globalThis.fetch,
     log: overrides.log || (() => {}),
@@ -155,7 +160,7 @@ export function isRunning(deps) {
 }
 
 export function enable(deps) {
-  const config = loadOrCreateConfig(deps.configPath);
+  const config = loadOrCreateConfig(deps.configPath, { productConfig: deps.productConfig });
   let codex;
   try {
     codex = deps.resolveCodex({
@@ -181,6 +186,8 @@ export function enable(deps) {
   });
   // daemon 配置：codexCommand 钉到用户机器上的官方 Codex CLI（含空格路径 Node spawn 已验证 OK）
   config.codexCommand = p.codexExe;
+  if (deps.productConfig?.relayUrl) config.relayUrl = deps.productConfig.relayUrl;
+  if (deps.productConfig?.webUrl) config.webUrl = deps.productConfig.webUrl;
   saveConfig(deps.configPath, config);
 
   const xml = buildTaskXml({ node: p.node, daemonMain: p.daemonMain, workingDir: p.workingDir, userId: deps.userId, vbs: p.hiddenLauncher });
@@ -204,6 +211,7 @@ export function disable(deps) {
   deps.runSchtasks(["/End", "/TN", TASK_NAME]); // 停当前实例，忽略失败
   deps.runSchtasks(["/Delete", "/TN", TASK_NAME, "/F"]);
   cleanupLegacyTasks(deps);
+  stopInstallDaemons(deps);
   return { ok: true, enabled: false };
 }
 
@@ -212,6 +220,39 @@ function cleanupLegacyTasks(deps) {
     deps.runSchtasks(["/End", "/TN", name]);
     deps.runSchtasks(["/Delete", "/TN", name, "/F"]);
   }
+}
+
+function listWindowsProcesses() {
+  const script = [
+    "Get-CimInstance Win32_Process",
+    "| Select-Object ProcessId,ParentProcessId,Name,CommandLine",
+    "| ConvertTo-Json -Compress",
+  ].join(" ");
+  const res = spawnSync("powershell", ["-NoProfile", "-Command", script], { encoding: "utf8", timeout: 10_000 });
+  if (res.status !== 0 || !res.stdout.trim()) return [];
+  try {
+    const parsed = JSON.parse(res.stdout);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+}
+
+function stopInstallDaemons(deps) {
+  const daemonMain = normalizeProcessPath(installPaths(deps.installRoot, { nodePath: deps.nodePath }).daemonMain);
+  for (const proc of deps.listProcesses()) {
+    const rawCommandLine = proc.commandLine ?? proc.CommandLine ?? "";
+    const commandLine = normalizeProcessPath(rawCommandLine);
+    if (!commandLine.includes(daemonMain)) continue;
+    if (!/\bstart\b/i.test(rawCommandLine)) continue;
+    const pid = Number(proc.processId ?? proc.ProcessId);
+    if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) continue;
+    deps.killProcessTree(pid);
+  }
+}
+
+function normalizeProcessPath(value) {
+  return String(value).replace(/\//g, "\\").toLowerCase();
 }
 
 // pair/pair-once 额外渲染二维码 BMP，路径回给托盘显示；其余命令原样走 core。

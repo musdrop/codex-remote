@@ -27,6 +27,7 @@ if (Test-Path $OutputRoot) {
 }
 New-Item -ItemType Directory -Force $OutputRoot | Out-Null
 New-Item -ItemType Directory -Force (Join-Path $OutputRoot "node") | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $OutputRoot "config") | Out-Null
 
 & (Join-Path $SourceRoot "native\Build-CodexRemoteTray.ps1") `
   -SourceRoot $SourceRoot `
@@ -34,9 +35,30 @@ New-Item -ItemType Directory -Force (Join-Path $OutputRoot "node") | Out-Null
 
 Copy-Item -LiteralPath $Node -Destination (Join-Path $OutputRoot "node\node.exe") -Force
 
-foreach ($dir in @("remote", "launcher", "src")) {
-  Copy-Item -LiteralPath (Join-Path $SourceRoot $dir) -Destination (Join-Path $OutputRoot $dir) -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\product.json") -Destination (Join-Path $OutputRoot "config\product.json") -Force
+
+function Copy-FileRelative([string]$RelativePath) {
+  $src = Join-Path $SourceRoot $RelativePath
+  $dst = Join-Path $OutputRoot $RelativePath
+  New-Item -ItemType Directory -Force (Split-Path -Parent $dst) | Out-Null
+  Copy-Item -LiteralPath $src -Destination $dst -Force
 }
+
+function Copy-DirRelative([string]$RelativePath) {
+  $src = Join-Path $SourceRoot $RelativePath
+  $dst = Join-Path $OutputRoot $RelativePath
+  New-Item -ItemType Directory -Force (Split-Path -Parent $dst) | Out-Null
+  Copy-Item -LiteralPath $src -Destination $dst -Recurse -Force
+}
+
+Copy-DirRelative "remote\daemon\src"
+Copy-FileRelative "launcher\remote-backend-core.mjs"
+Copy-FileRelative "launcher\win\remote-backend.mjs"
+Copy-FileRelative "launcher\win\run-hidden.vbs"
+Copy-FileRelative "launcher\win\qr-bmp.mjs"
+Copy-DirRelative "launcher\win\vendor"
+Copy-FileRelative "src\desktop\codex-command.mjs"
+Copy-FileRelative "src\desktop\product-config.mjs"
 
 Copy-Item -LiteralPath (Join-Path $SourceRoot "README.md") -Destination (Join-Path $OutputRoot "README.md") -Force
 
