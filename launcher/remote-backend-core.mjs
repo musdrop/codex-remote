@@ -65,7 +65,7 @@ export function pairOnce(deps) {
 }
 
 // 在线观众数：daemon 在观众上下线时把按 deviceId 聚合的计数节流写入 viewer-status.json
-//（本 CLI 无常驻进程，这是唯一不引协议通道的取数路径）。daemon 没在跑则视为无人围观。
+//（本命令入口无常驻进程，这是唯一不引协议通道的取数路径）。daemon 没在跑则视为无人围观。
 function readViewerStatus(deps) {
   if (!deps.isRunning(deps)) return {};
   try {
@@ -152,16 +152,25 @@ export function settings(deps) {
   return {
     relayUrl: config.relayUrl ?? "",
     webUrl: config.webUrl ?? "",
-    codexCommand: config.codexCommand ?? "codex",
+    codexCommand: config.codexCommand && config.codexCommand !== "codex" ? config.codexCommand : "",
     productManaged: Boolean(deps.productConfig?.relayUrl || deps.productConfig?.webUrl),
   };
 }
 
 export function settingsSave(deps, codexCommand) {
   const command = String(codexCommand ?? "").trim();
-  if (!command) return { ok: false, error: "Codex CLI 路径不能为空" };
+  if (!command) return { ok: false, error: "Codex Desktop 引擎路径不能为空" };
+  let resolved;
+  try {
+    resolved = deps.resolveCodex?.({
+      env: { ...process.env, CODEX_REMOTE_CODEX: command },
+      platform: process.platform,
+    }) ?? { command };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
   const config = loadConfig(deps);
-  config.codexCommand = command;
+  config.codexCommand = resolved.command;
   if (deps.productConfig?.relayUrl) config.relayUrl = deps.productConfig.relayUrl;
   if (deps.productConfig?.webUrl) config.webUrl = deps.productConfig.webUrl;
   saveConfig(deps.configPath, config);
@@ -171,13 +180,13 @@ export function settingsSave(deps, codexCommand) {
 export function codexDetect(deps) {
   try {
     const found = deps.resolveCodex?.({ platform: process.platform });
-    return found?.command ? { ok: true, codexCommand: found.command, source: found.source } : { ok: false, error: "未找到 Codex CLI" };
+    return found?.command ? { ok: true, codexCommand: found.command, source: found.source } : { ok: false, error: "未找到可用的 Codex Desktop 引擎" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-// —— CLI 分发 —— enable/disable 走平台钩子（launchd / 计划任务），其余纯逻辑
+// —— 命令分发 —— enable/disable 走平台钩子（launchd / 计划任务），其余纯逻辑
 export async function run(command, rest, deps) {
   switch (command) {
     case "status": return status(deps);

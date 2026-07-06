@@ -34,28 +34,28 @@ http://127.0.0.1:4173/
 
 ### 3. 启动开发 daemon
 
-如果 `codex` 已在 `PATH` 中：
+如果本机能自动检测到官方 Codex Desktop 引擎：
 
 ```powershell
 npm run remote:daemon -- --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
 ```
 
-如果需要指定官方 Codex CLI：
+如果需要指定官方 Codex Desktop 引擎：
 
 ```powershell
-npm run remote:daemon -- --codex "C:\Path\To\codex.exe" --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
+npm run remote:daemon -- --codex "C:\Path\To\Codex\app\resources\codex.exe" --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
 ```
 
 npm 11 在部分环境里会把 `--codex`、`--relay`、`--web` 当作 npm 自己的配置项处理。本项目也兼容位置参数：
 
 ```powershell
-npm run remote:daemon -- "C:\Path\To\codex.exe" ws://127.0.0.1:8787 http://127.0.0.1:4173/
+npm run remote:daemon -- "C:\Path\To\Codex\app\resources\codex.exe" ws://127.0.0.1:8787 http://127.0.0.1:4173/
 ```
 
 也可以绕过 npm：
 
 ```powershell
-node scripts/start-daemon.mjs --codex "C:\Path\To\codex.exe" --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
+node scripts/start-daemon.mjs --codex "C:\Path\To\Codex\app\resources\codex.exe" --relay ws://127.0.0.1:8787 --web http://127.0.0.1:4173/
 ```
 
 ### 4. 生成配对链接
@@ -125,3 +125,4 @@ npm run remote:smoke
 - 前端和 Worker 不需要构建，直接部署源目录。
 - Windows 便携目录只打包运行 daemon 所需的文件，不包含 `remote/web`、`remote/relay-worker`、`remote/relay-node`。
 - 若本地已有一个 daemon 占用 `19271`，daemon 会自动尝试下一个可用端口。
+- Windows 自动检测只接受真实 `codex.exe`，不会把 npm 全局安装的 `codex.cmd` 当作桌面端引擎。

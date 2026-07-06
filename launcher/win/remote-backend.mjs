@@ -184,7 +184,7 @@ export function enable(deps) {
     nodePath: deps.nodePath,
     codexCommand: codex.command,
   });
-  // daemon 配置：codexCommand 钉到用户机器上的官方 Codex CLI（含空格路径 Node spawn 已验证 OK）
+  // daemon 配置：codexCommand 钉到用户机器上的官方 Codex Desktop 引擎（含空格路径 Node spawn 已验证 OK）
   config.codexCommand = p.codexExe;
   if (deps.productConfig?.relayUrl) config.relayUrl = deps.productConfig.relayUrl;
   if (deps.productConfig?.webUrl) config.webUrl = deps.productConfig.webUrl;

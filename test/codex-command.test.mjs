@@ -11,19 +11,36 @@ test("resolveCodexCommand prefers an explicit command from env", () => {
     env: { CODEX_REMOTE_CODEX: "D:\\Tools\\codex.exe", PATH: "" },
     exists: (candidate) => candidate === "D:\\Tools\\codex.exe",
     platform: "win32",
+    validate: (candidate) => ({ ok: candidate === "D:\\Tools\\codex.exe" }),
   });
 
   assert.equal(result.command, "D:\\Tools\\codex.exe");
   assert.equal(result.source, "env");
 });
 
-test("resolveCodexCommand maps the official Windows app shell to the bundled CLI", () => {
+test("resolveCodexCommand rejects an explicit command that cannot run app-server", () => {
+  assert.throws(
+    () =>
+      resolveCodexCommand({
+        env: { CODEX_REMOTE_CODEX: "D:\\Tools\\codex.exe", PATH: "" },
+        exists: (candidate) => candidate === "D:\\Tools\\codex.exe",
+        platform: "win32",
+        validate: () => ({ ok: false, reason: "missing app-server" }),
+      }),
+    /不是可用的 Codex Desktop 引擎/,
+  );
+});
+
+test("resolveCodexCommand maps the official Windows app shell to the bundled Desktop engine", () => {
   const result = resolveCodexCommand({
     env: { CODEX_REMOTE_CODEX: "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe", PATH: "" },
     exists: (candidate) =>
       candidate === "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe" ||
       candidate === "E:\\WindowsApps\\OpenAICodex\\app\\resources\\codex.exe",
     platform: "win32",
+    validate: (candidate) => ({
+      ok: candidate === "E:\\WindowsApps\\OpenAICodex\\app\\resources\\codex.exe",
+    }),
   });
 
   assert.equal(result.command, "E:\\WindowsApps\\OpenAICodex\\app\\resources\\codex.exe");
@@ -35,20 +52,40 @@ test("resolveCodexCommand finds codex on PATH", () => {
     env: { PATH: "C:\\One;C:\\Codex\\bin" },
     exists: (candidate) => candidate === "C:\\Codex\\bin\\codex.exe",
     platform: "win32",
+    validate: (candidate) => ({ ok: candidate === "C:\\Codex\\bin\\codex.exe" }),
   });
 
   assert.equal(result.command, "C:\\Codex\\bin\\codex.exe");
   assert.equal(result.source, "path");
 });
 
-test("resolveCodexCommand finds codex.cmd on Windows PATH", () => {
+test("resolveCodexCommand skips npm codex.cmd on Windows PATH", () => {
+  assert.throws(
+    () =>
+      resolveCodexCommand({
+        env: { PATH: "C:\\Users\\me\\AppData\\Roaming\\npm" },
+        exists: (candidate) => candidate === "C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd",
+        platform: "win32",
+        validate: () => ({ ok: true }),
+      }),
+    /未找到可用的 Codex Desktop 引擎/,
+  );
+});
+
+test("resolveCodexCommand skips codex.exe candidates that fail validation", () => {
   const result = resolveCodexCommand({
-    env: { PATH: "C:\\Users\\me\\AppData\\Roaming\\npm" },
-    exists: (candidate) => candidate === "C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd",
+    env: { PATH: "C:\\Bad;C:\\Good" },
+    exists: (candidate) =>
+      candidate === "C:\\Bad\\codex.exe" ||
+      candidate === "C:\\Good\\codex.exe",
     platform: "win32",
+    validate: (candidate) => ({
+      ok: candidate === "C:\\Good\\codex.exe",
+      reason: "missing app-server",
+    }),
   });
 
-  assert.equal(result.command, "C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd");
+  assert.equal(result.command, "C:\\Good\\codex.exe");
   assert.equal(result.source, "path");
 });
 
@@ -57,6 +94,7 @@ test("resolveCodexCommand uses colon-delimited PATH on unix platforms", () => {
     env: { PATH: "/usr/local/bin:/opt/codex/bin" },
     exists: (candidate) => candidate === "/opt/codex/bin/codex",
     platform: "darwin",
+    validate: (candidate) => ({ ok: candidate === "/opt/codex/bin/codex" }),
   });
 
   assert.equal(result.command, "/opt/codex/bin/codex");
@@ -71,8 +109,35 @@ test("resolveCodexCommand returns a useful error when codex is missing", () => {
         exists: () => false,
         platform: "win32",
       }),
-    /Codex CLI not found/,
+    /未找到可用的 Codex Desktop 引擎/,
   );
+});
+
+test("validateCodexDesktopEngine checks for app-server help output", async () => {
+  const { validateCodexDesktopEngine } = await import("../src/desktop/codex-command.mjs");
+  const ok = validateCodexDesktopEngine("D:\\Codex\\codex.exe", {
+    platform: "win32",
+    spawn: () => ({
+      status: 0,
+      stdout: "Usage: codex app-server [OPTIONS]\n--listen <URL>",
+      stderr: "",
+    }),
+  });
+
+  assert.equal(ok.ok, true);
+});
+
+test("validateCodexDesktopEngine rejects Windows command shims", async () => {
+  const { validateCodexDesktopEngine } = await import("../src/desktop/codex-command.mjs");
+  const result = validateCodexDesktopEngine("C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd", {
+    platform: "win32",
+    spawn: () => {
+      throw new Error("should not spawn shim");
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /cmd\/ps1/);
 });
 
 test("buildAppServerArgs targets the local app-server websocket", () => {

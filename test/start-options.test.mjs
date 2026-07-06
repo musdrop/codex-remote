@@ -34,6 +34,7 @@ test("buildStartDaemonOptions lets --codex override discovery", () => {
     exists: (candidate) => candidate === "D:\\Manual\\codex.exe",
     env: { PATH: "" },
     platform: "win32",
+    validate: (candidate) => ({ ok: candidate === "D:\\Manual\\codex.exe" }),
   });
 
   assert.equal(options.overrides.codexCommand, "D:\\Manual\\codex.exe");
@@ -50,6 +51,7 @@ test("buildStartDaemonOptions accepts npm-stripped positional codex relay and we
     exists: (candidate) => candidate === "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe",
     env: { PATH: "" },
     platform: "win32",
+    validate: (candidate) => ({ ok: candidate === "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe" }),
   });
 
   assert.deepEqual(options.overrides, {

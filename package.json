@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Standalone remote controller for the official Codex desktop/CLI.",
+  "description": "Standalone remote controller for the official Codex Desktop app-server.",
   "license": "MIT",
   "scripts": {
     "build": "npm run build:desktop:win",

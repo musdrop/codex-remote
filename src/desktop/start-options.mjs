@@ -8,6 +8,7 @@ export function buildStartDaemonOptions({
   exists,
   platform,
   resolveCodex,
+  validate,
 } = {}) {
   const { positionals, values } = parseArgs({
     allowNegative: true,
@@ -35,10 +36,11 @@ export function buildStartDaemonOptions({
         env: { ...(env ?? {}), CODEX_REMOTE_CODEX: codexArg },
         exists,
         platform,
+        validate,
       })
     : (resolveCodex
         ? resolveCodex()
-        : resolveCodexCommand({ env, exists, platform }));
+        : resolveCodexCommand({ env, exists, platform, validate }));
 
   return {
     configPath: values.config,

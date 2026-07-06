@@ -1,5 +1,5 @@
 // 配置变更检测与设备表核对：撤销/过期的在线连接必须被立即踢断
-//（桌面撤销走独立 CLI 进程写文件，daemon 靠 watch + 轮询发现）。
+//（桌面撤销走独立后端进程写文件，daemon 靠 watch + 轮询发现）。
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";

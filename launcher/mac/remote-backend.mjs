@@ -1,6 +1,6 @@
 // macOS (launchd) backend for the menu-bar Remote controller (CodexRemoteMenu.swift).
 //
-// Swift is a pure view: it shells out to this CLI for every action (argv subcommand
+// Swift is a pure view: it shells out to this backend for every action (argv subcommand
 // in, single JSON object out). The cross-platform command surface lives in
 // ../remote-backend-core.mjs; this file only supplies the macOS keepalive layer
 // (launchd plist + launchctl) and wires it into the core via makeDeps.
@@ -140,7 +140,7 @@ export function enable(deps) {
   mkdirSync(path.dirname(logPath), { recursive: true });
   mkdirSync(deps.launchAgentsDir, { recursive: true });
 
-  // 写入 daemon 配置：codexCommand 指向 bundle 内同版本 CLI（根治版本偏差）
+  // 写入 daemon 配置：codexCommand 指向 bundle 内同版本引擎（根治版本偏差）
   const config = loadOrCreateConfig(deps.configPath);
   config.codexCommand = b.codexCli;
   saveConfig(deps.configPath, config);

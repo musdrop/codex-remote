@@ -305,7 +305,8 @@ namespace CodexRemote
             {
                 string message = Backend.Str(en, "error");
                 Alert("开启失败", message);
-                if ((message ?? "").IndexOf("Codex CLI", StringComparison.OrdinalIgnoreCase) >= 0)
+                if ((message ?? "").IndexOf("Codex Desktop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (message ?? "").IndexOf("引擎", StringComparison.OrdinalIgnoreCase) >= 0)
                     ShowSettings();
                 return false;
             }
@@ -413,7 +414,7 @@ namespace CodexRemote
             form.Show();
         }
 
-        // —— 设置窗：relay/web 由发布包管理，只允许用户配置本机 Codex CLI 路径 ——
+        // —— 设置窗：relay/web 由发布包管理，只允许用户配置本机 Codex Desktop 引擎路径 ——
         void ShowSettings()
         {
             var settings = Backend.Call("settings");
@@ -439,13 +440,13 @@ namespace CodexRemote
             var web = new TextBox { Text = Backend.Str(settings, "webUrl") ?? "", Width = 570, ReadOnly = true, Margin = new Padding(0, 2, 0, 10) };
             root.Controls.Add(web);
 
-            root.Controls.Add(new Label { Text = "Codex CLI 路径", AutoSize = true });
-            var codex = new TextBox { Text = Backend.Str(settings, "codexCommand") ?? "codex", Width = 570, Margin = new Padding(0, 2, 0, 8) };
+            root.Controls.Add(new Label { Text = "Codex Desktop 引擎路径", AutoSize = true });
+            var codex = new TextBox { Text = Backend.Str(settings, "codexCommand") ?? "", Width = 570, Margin = new Padding(0, 2, 0, 8) };
             root.Controls.Add(codex);
 
             var row = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, Width = 570, Height = 40, WrapContents = false };
             var detect = new Button { Text = "自动检测", Width = 92, Height = 30, FlatStyle = FlatStyle.System };
-            var browse = new Button { Text = "选择…", Width = 80, Height = 30, FlatStyle = FlatStyle.System };
+            var browse = new Button { Text = "选择文件", Width = 92, Height = 30, FlatStyle = FlatStyle.System };
             var save = new Button { Text = "保存", Width = 80, Height = 30, FlatStyle = FlatStyle.System };
             row.Controls.Add(detect);
             row.Controls.Add(browse);
@@ -454,7 +455,7 @@ namespace CodexRemote
 
             root.Controls.Add(new Label
             {
-                Text = "如果自动检测失败，请选择官方 Codex 安装目录里的 app\\resources\\codex.exe。",
+                Text = "请选择官方 Codex Desktop 安装目录里的 app\\resources\\codex.exe。不要选择 npm 全局安装的 codex.cmd。",
                 ForeColor = Color.Gray,
                 AutoSize = true,
                 MaximumSize = new Size(570, 0),
@@ -468,17 +469,17 @@ namespace CodexRemote
                 if (found != null)
                 {
                     codex.Text = found;
-                    Alert("已检测到 Codex", found);
+                    Alert("已检测到 Codex Desktop 引擎", found);
                 }
-                else Alert("未找到 Codex", Backend.Str(r, "error") ?? "请手动选择 codex.exe");
+                else Alert("未找到 Codex Desktop 引擎", Backend.Str(r, "error") ?? "请手动选择 app\\resources\\codex.exe");
             };
 
             browse.Click += (s, e) =>
             {
                 using (var dlg = new OpenFileDialog())
                 {
-                    dlg.Title = "选择 codex.exe";
-                    dlg.Filter = "Codex CLI (codex.exe)|codex.exe|所有文件 (*.*)|*.*";
+                    dlg.Title = "选择 Codex Desktop 内置 codex.exe";
+                    dlg.Filter = "Codex Desktop 引擎 (codex.exe)|codex.exe|所有文件 (*.*)|*.*";
                     dlg.CheckFileExists = true;
                     if (dlg.ShowDialog(form) == DialogResult.OK) codex.Text = dlg.FileName;
                 }
@@ -492,7 +493,7 @@ namespace CodexRemote
                     Alert("保存失败", Backend.Str(r, "error"));
                     return;
                 }
-                Alert("已保存", "Codex CLI 路径已保存。");
+                Alert("已保存", "Codex Desktop 引擎路径已保存。");
                 form.Close();
             };
 

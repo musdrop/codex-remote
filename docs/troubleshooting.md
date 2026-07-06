@@ -74,22 +74,24 @@ app-server 端口 19271 已被占用，改用 19272
 
 这是正常行为。
 
-## 找不到 Codex CLI
+## 找不到 Codex Desktop 引擎
 
 错误示例：
 
 ```text
-Codex CLI not found
+未找到可用的 Codex Desktop 引擎
 ```
 
 处理方式：
 
-1. 确认官方 Codex 已安装。
+1. 确认官方 Codex Desktop 已安装。
 2. 优先选择官方安装目录中的 `app\resources\codex.exe`。
 3. 在托盘“设置”窗口保存路径。
 4. 或设置环境变量 `CODEX_REMOTE_CODEX`。
 
-Windows 官方桌面 App 的 `app\Codex.exe` 是桌面壳，不是 CLI。项目会尽量自动映射，但自动检测失败时应手动选择 `app\resources\codex.exe`。
+Windows 官方桌面 App 的 `app\Codex.exe` 是桌面壳。项目会尽量自动映射到 `app\resources\codex.exe`，但自动检测失败时应手动选择该文件。
+
+不要选择 npm 全局安装生成的 `codex.cmd`。新版自动检测会跳过 `.cmd/.ps1` shim，并对真实 `codex.exe` 运行 `app-server --help` 探测，确认可用后才写入配置。
 
 ## 查看配置文件
 

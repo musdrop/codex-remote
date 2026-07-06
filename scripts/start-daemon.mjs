@@ -12,7 +12,7 @@ async function main() {
     overrides: options.overrides,
   });
 
-  console.log(`Codex Remote daemon started using Codex CLI (${options.codexSource}): ${options.overrides.codexCommand}`);
+  console.log(`Codex Remote daemon started using Codex Desktop engine (${options.codexSource}): ${options.overrides.codexCommand}`);
 
   const shutdown = () => {
     daemon.stop();
