@@ -11,4 +11,5 @@ test("Windows desktop build copies only runtime slices instead of the whole remo
   assert.doesNotMatch(script, /remote\\web/);
   assert.doesNotMatch(script, /remote\\relay-worker/);
   assert.doesNotMatch(script, /remote\\relay-node/);
+  assert.doesNotMatch(script, /README\.md/);
 });

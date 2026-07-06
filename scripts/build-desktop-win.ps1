@@ -60,8 +60,6 @@ Copy-DirRelative "launcher\win\vendor"
 Copy-FileRelative "src\desktop\codex-command.mjs"
 Copy-FileRelative "src\desktop\product-config.mjs"
 
-Copy-Item -LiteralPath (Join-Path $SourceRoot "README.md") -Destination (Join-Path $OutputRoot "README.md") -Force
-
 $cmd = @'
 @echo off
 set "ROOT=%~dp0"

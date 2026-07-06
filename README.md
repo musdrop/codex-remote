@@ -285,13 +285,14 @@ dist\desktop\windows\CodexRemote\Start-CodexRemote.cmd
 
 - 查看远程是否启用/运行。
 - 设置 Codex CLI 路径。
+- 启动远程。
 - 扫码配对手机。
 - 查看和撤销已配对设备。
 - 配置通知渠道。
 - 停用远程。
 - 退出并停止远程。
 
-第一次点“扫码配对手机”时，托盘会尝试启用 daemon。独立版不会使用内置 Codex，而是查找用户机器上的官方 Codex CLI：
+已有手机配对时，可以只点“启动远程”让网页重新连上这台电脑；需要新设备配对时，再点“扫码配对手机”。这两个入口都会在必要时启用 daemon。独立版不会使用内置 Codex，而是查找用户机器上的官方 Codex CLI：
 
 - 优先使用环境变量 `CODEX_REMOTE_CODEX`。
 - 其次复用 daemon 配置中的 `codexCommand`。
