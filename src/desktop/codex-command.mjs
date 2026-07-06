@@ -12,16 +12,19 @@ export function resolveCodexCommand({
     if (!exists(explicit)) {
       throw new Error(`Codex CLI not found at CODEX_REMOTE_CODEX: ${explicit}`);
     }
+    const appCli = officialWindowsAppCli(explicit, exists, platform);
+    if (appCli) {
+      return { command: appCli, source: "env-app-shell" };
+    }
     return { command: explicit, source: "env" };
   }
 
-  const executable = platform === "win32" ? "codex.exe" : "codex";
   for (const dir of pathEntries(env.PATH, platform)) {
-    const candidate = platform === "win32"
-      ? path.win32.join(dir, executable)
-      : path.posix.join(dir, executable);
-    if (exists(candidate)) {
-      return { command: candidate, source: "path" };
+    for (const candidate of commandCandidates(dir, platform)) {
+      if (exists(candidate)) {
+        const appCli = officialWindowsAppCli(candidate, exists, platform);
+        return { command: appCli ?? candidate, source: "path" };
+      }
     }
   }
 
@@ -32,6 +35,20 @@ export function resolveCodexCommand({
 
 export function buildAppServerArgs({ port = 19271 } = {}) {
   return ["app-server", "--listen", `ws://127.0.0.1:${Number(port)}`];
+}
+
+function commandCandidates(dir, platform) {
+  if (platform !== "win32") return [path.posix.join(dir, "codex")];
+  return ["codex.exe", "codex.cmd", "codex.ps1", "codex"].map((name) =>
+    path.win32.join(dir, name));
+}
+
+function officialWindowsAppCli(command, exists, platform) {
+  if (platform !== "win32") return null;
+  const parsed = path.win32.parse(command);
+  if (parsed.base !== "Codex.exe") return null;
+  const cli = path.win32.join(parsed.dir, "resources", "codex.exe");
+  return exists(cli) ? cli : null;
 }
 
 function pathEntries(value, platform) {

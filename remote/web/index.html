@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<title>Codex-叉叉</title>
+<title>Codex Remote</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta id="mtcdark" name="theme-color" media="(prefers-color-scheme: dark)" content="#14181f">
 <meta id="mtclight" name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
@@ -18,7 +18,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="C叉叉">
+<meta name="apple-mobile-web-app-title" content="Codex Remote">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <style>
@@ -553,7 +553,7 @@ try {
 <header>
   <button id="back" style="display:none" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
   <div id="hmid">
-    <h1 id="title">C叉叉<span id="chev">▾</span></h1>
+    <h1 id="title">Codex Remote<span id="chev">▾</span></h1>
     <span id="status">连接中…</span>
   </div>
   <button id="sharebtn" aria-label="分享围观（只读）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
@@ -638,7 +638,7 @@ try {
     <span class="sp"></span>
     <span id="vreact"></span>
     <button id="vshare" aria-label="转发围观"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-    <a id="vcta" href="https://focuxdot.github.io/codex-zh/" target="_blank" rel="noopener">想让自己的 Codex 也能这样？</a>
+    <a id="vcta" href="./" target="_blank" rel="noopener">想部署自己的 Codex Remote？</a>
   </div>
   <div id="plusmenu">
     <!-- 图标与首页/权限图标同一套单色线条，避免 iOS 彩色 emoji 破坏裸排版 -->
@@ -842,7 +842,7 @@ async function x25519Shared(daemonPubRaw) {
 // HKDF-SHA256：原生 HKDF 优先，失败降级 HMAC 手动展开（输出 32 字节，单块足够）
 async function hkdfAesKey(shared, daemonInfo) {
   const salt = enc.encode(daemonInfo.id);
-  const info = enc.encode("codex-zh-remote-v1");
+  const info = enc.encode("codex-remote-v1");
   try {
     const hk = await crypto.subtle.importKey("raw", shared, "HKDF", false, ["deriveKey"]);
     return await crypto.subtle.deriveKey(
@@ -2223,7 +2223,7 @@ async function closeSession() {
   $("log").innerHTML = "";
   $("list").classList.remove("hidden");
   $("back").style.display = "none";
-  setTitle("C叉叉");
+  setTitle("Codex Remote");
   updateStatusPill(); // 副标题退回电脑名
   renderApprovals();
   // 网络动作放到视图切换之后、且不阻塞返回：unwatch 只是通知 daemon 停止推流，
@@ -2981,12 +2981,12 @@ function updateTitleBlink() {
     let flip = false;
     titleBlink = setInterval(() => {
       flip = !flip;
-      document.title = flip ? `（${app.approvals.size} 个审批）Codex-叉叉` : "Codex-叉叉";
+      document.title = flip ? `（${app.approvals.size} 个审批）Codex Remote` : "Codex Remote";
     }, 1200);
   } else if (n === 0 && titleBlink) {
     clearInterval(titleBlink);
     titleBlink = null;
-    document.title = "Codex-叉叉";
+    document.title = "Codex Remote";
   }
 }
 
@@ -3666,7 +3666,7 @@ function handleRevoked(info, err) {
   }
   app.session = null;
   document.body.classList.remove("paired");
-  setTitle("C叉叉");
+  setTitle("Codex Remote");
   updateChevron();
   renderOnboarding();
   $("status").textContent = "未配对";
@@ -3677,7 +3677,7 @@ function handleRevoked(info, err) {
 // —— 启动会话（可反复调用以切换电脑）——
 function startSession(info) {
   // 标题固定，电脑名走副标题（updateStatusPill）；未配对态没有底栏/菜单
-  if (app.view === "list") setTitle("C叉叉");
+  if (app.view === "list") setTitle("Codex Remote");
   document.body.classList.add("paired");
   // 观众态：同一套页面按角色收掉操作性镶边（CSS body.viewer 作用域）
   app.isViewer = !!info.viewer;
@@ -3777,7 +3777,7 @@ async function openShareSheet() {
     const note = document.createElement("div");
     note.className = "sheetnote";
     note.textContent = /未知方法/.test(err.message)
-      ? "电脑端 Remote 版本较旧，尚不支持围观分享。请先更新电脑端 Codex-叉叉。"
+      ? "电脑端 Remote 版本较旧，尚不支持围观分享。请先更新 Codex Remote 桌面端。"
       : `加载失败：${err.message}`;
     box.appendChild(note);
   }
@@ -3916,7 +3916,7 @@ function renderOnboarding() {
       <h2>连接你的电脑</h2>
       <p>在手机上实时掌握电脑上的 Codex：看任务进展、处理审批、布置下一步。</p>
       <ol>
-        <li>在电脑上打开 Codex-叉叉，点菜单栏的 Codex 图标</li>
+        <li>在电脑上打开 Codex Remote，点击系统托盘图标</li>
         <li>选「启用手机远程接管」，再点「扫码配对」</li>
         <li>用手机相机扫码（或点扫码页里的链接复制到手机打开）</li>
       </ol>

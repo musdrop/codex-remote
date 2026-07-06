@@ -9,8 +9,9 @@ export function buildStartDaemonOptions({
   platform,
   resolveCodex,
 } = {}) {
-  const { values } = parseArgs({
+  const { positionals, values } = parseArgs({
     allowNegative: true,
+    allowPositionals: true,
     args: argv,
     options: {
       codex: { type: "string" },
@@ -20,10 +21,18 @@ export function buildStartDaemonOptions({
       "prevent-sleep": { type: "boolean" },
     },
   });
+  if (positionals.length > 3) {
+    throw new Error(
+      "位置参数过多。兼容形式只接受：<codex> <relay> <web>。",
+    );
+  }
 
-  const codex = values.codex
+  const [positionalCodex, positionalRelay, positionalWeb] = positionals;
+  const codexArg = values.codex ?? positionalCodex;
+
+  const codex = codexArg
     ? resolveCodexCommand({
-        env: { ...(env ?? {}), CODEX_REMOTE_CODEX: values.codex },
+        env: { ...(env ?? {}), CODEX_REMOTE_CODEX: codexArg },
         exists,
         platform,
       })
@@ -33,11 +42,11 @@ export function buildStartDaemonOptions({
 
   return {
     configPath: values.config,
-    codexSource: values.codex ? "arg" : codex.source,
+    codexSource: codexArg ? "arg" : codex.source,
     overrides: {
       codexCommand: codex.command,
-      relayUrl: values.relay,
-      webUrl: values.web,
+      relayUrl: values.relay ?? positionalRelay,
+      webUrl: values.web ?? positionalWeb,
       preventSleep: values["prevent-sleep"],
     },
   };

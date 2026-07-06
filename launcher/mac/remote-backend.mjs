@@ -1,4 +1,4 @@
-// macOS (launchd) backend for the menu-bar Remote controller (CodexZhRemoteMenu.swift).
+// macOS (launchd) backend for the menu-bar Remote controller (CodexRemoteMenu.swift).
 //
 // Swift is a pure view: it shells out to this CLI for every action (argv subcommand
 // in, single JSON object out). The cross-platform command surface lives in
@@ -30,12 +30,12 @@ export {
 } from "../remote-backend-core.mjs";
 export { run };
 
-export const DAEMON_LABEL = "ai.wokey.codex-zh.remote";
-export const MENU_LABEL = "ai.wokey.codex-zh.remote-menu";
+export const DAEMON_LABEL = "ai.codexremote.remote";
+export const MENU_LABEL = "ai.codexremote.remote-menu";
 
-// —— app 内路径解析（backend 位于 <app>/Contents/Resources/codex-zh/launcher/mac）——
+// —— app 内路径解析（backend 位于 <app>/Contents/Resources/codex-remote/launcher/mac）——
 export function resolveAppRoot(env = process.env, moduleUrl = import.meta.url) {
-  if (env.CODEX_ZH_APP_ROOT) return env.CODEX_ZH_APP_ROOT;
+  if (env.CODEX_REMOTE_APP_ROOT) return env.CODEX_REMOTE_APP_ROOT;
   return path.resolve(path.dirname(fileURLToPath(moduleUrl)), "..", "..", "..", "..", "..");
 }
 
@@ -45,8 +45,8 @@ export function bundlePaths(appRoot) {
   return {
     node: path.posix.join(contents, "Resources", "cua_node", "bin", "node"),
     codexCli: path.posix.join(contents, "Resources", "codex"),
-    daemonMain: path.posix.join(contents, "Resources", "codex-zh", "remote", "daemon", "src", "main.mjs"),
-    menuBin: path.posix.join(contents, "Resources", "codex-zh", "bin", "CodexZhRemoteMenu"),
+    daemonMain: path.posix.join(contents, "Resources", "codex-remote", "remote", "daemon", "src", "main.mjs"),
+    menuBin: path.posix.join(contents, "Resources", "codex-remote", "bin", "CodexRemoteMenu"),
   };
 }
 
@@ -93,8 +93,8 @@ export function daemonPlist({ node, daemonMain, codexHome, logPath }) {
 }
 
 // 注：不再为菜单程序装 LaunchAgent。菜单是「有人在电脑前」时的控制界面，
-// 由 Codex-ZH 启动器在打开 app 时带正确参数拉起（见 codex-zh-launcher.mjs
-// 的 spawnRemoteMenu）。常驻 LaunchAgent 既多余、又因参数缺失会 usage 死循环。
+// 由桌面启动器在打开 app 时带正确参数拉起。常驻 LaunchAgent 既多余，
+// 又因参数缺失会 usage 死循环。
 
 // —— makeDeps：core 依赖 + 注入 launchd 版平台钩子（isEnabled/isRunning/enable/disable）——
 // deps: { configPath, launchAgentsDir, appRoot, homeDir, uid, runLaunchctl, fetch, log, now,
@@ -136,7 +136,7 @@ export function isRunning(deps) {
 export function enable(deps) {
   const b = bundlePaths(deps.appRoot);
   const codexHome = resolveOfficialCodexHome({ ...process.env, HOME: deps.homeDir });
-  const logPath = path.join(deps.homeDir, ".codex-zh", "remote", "daemon.log");
+  const logPath = path.join(deps.homeDir, ".codex-remote", "remote", "daemon.log");
   mkdirSync(path.dirname(logPath), { recursive: true });
   mkdirSync(deps.launchAgentsDir, { recursive: true });
 

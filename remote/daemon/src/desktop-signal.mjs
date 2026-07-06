@@ -7,7 +7,7 @@
 // on which thread — the desktop's own turns never touch the daemon's app-server.
 //
 // So on every turn/completed the daemon writes this tiny signal file. The patched
-// desktop bundle (see scripts/lib/remote-refresh-inject.mjs) watches it and shows
+// optional desktop integration can watch it and show
 // a one-click "refresh" banner. This avoids sniffing the desktop app-server's
 // MessagePort transport entirely, and can't fire for the user's own desktop turns.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 
 export function desktopSignalPath(home = homedir()) {
-  return path.join(home, ".codex-zh", "remote", "desktop-refresh.json");
+  return path.join(home, ".codex-remote", "remote", "desktop-refresh.json");
 }
 
 // Writes { threadId, name, at }. Best-effort: never throws (a signal-write

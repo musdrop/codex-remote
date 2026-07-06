@@ -1,4 +1,4 @@
-# Codex-叉叉 Remote 协议 v1
+# Codex Remote 协议 v1
 
 三个角色：**daemon**（用户电脑上的守护进程）、**client**（手机/浏览器）、**relay**（中继，Cloudflare Worker 或自托管 Node 变体）。
 
@@ -34,7 +34,7 @@ relay 不解析 `data` 内容。daemon 断开时，relay 向所有 client 推 `{
 密码学原语（Node `node:crypto` 与浏览器 WebCrypto 均原生支持）：
 
 - 密钥协商：X25519
-- 密钥派生：HKDF-SHA256，`salt = UTF8(daemonId)`，`info = "codex-zh-remote-v1"`，输出 32 字节
+- 密钥派生：HKDF-SHA256，`salt = UTF8(daemonId)`，`info = "codex-remote-v1"`，输出 32 字节
 - 对称加密：AES-256-GCM，12 字节随机 IV，逐消息生成
 - GCM AAD 绑定方向，防反射：client→daemon 为 `UTF8("czr1:c2d")`，daemon→client 为 `UTF8("czr1:d2c")`
 

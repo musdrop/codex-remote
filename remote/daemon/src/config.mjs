@@ -1,4 +1,4 @@
-// daemon 配置与状态：~/.codex-zh/remote/daemon.json
+// daemon 配置与状态：~/.codex-remote/remote/daemon.json
 import { createHash } from "node:crypto";
 import { hostname } from "node:os";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -12,9 +12,24 @@ export const PAIR_TOKEN_TTL_MS = 5 * 60 * 1000;
 // 应用层协议版本（daemon ↔ client）。relay 转发协议版本另见 URL 的 /v1/ 前缀。
 // 不兼容变更时递增：daemon 与 client 在 auth 握手交换，一端过旧则提示升级。
 export const APP_PROTOCOL = 1;
+const LEGACY_CONFIG_DIR = ".codex" + "-zh";
 
 export function defaultConfigPath() {
-  return join(homedir(), ".codex-zh", "remote", "daemon.json");
+  return resolveDefaultConfigPath();
+}
+
+export function legacyConfigPath({ home = homedir() } = {}) {
+  return join(home, LEGACY_CONFIG_DIR, "remote", "daemon.json");
+}
+
+export function resolveDefaultConfigPath({ home = homedir(), migrateLegacy = true } = {}) {
+  const current = join(home, ".codex-remote", "remote", "daemon.json");
+  const legacy = legacyConfigPath({ home });
+  if (migrateLegacy && !existsSync(current) && existsSync(legacy)) {
+    mkdirSync(dirname(current), { recursive: true, mode: 0o700 });
+    writeFileSync(current, readFileSync(legacy));
+  }
+  return current;
 }
 
 export function sha256(value) {
@@ -35,8 +50,8 @@ export function loadOrCreateConfig(path = defaultConfigPath()) {
     daemonName: hostname(),
     publicKey: keys.publicKeyRaw.toString("base64"),
     privateKeyPem: keys.privateKeyPem,
-    relayUrl: "wss://relay.wokey.ai", // 官方 relay；可用 start --relay 覆盖为自建实例
-    webUrl: "https://focuxdot.github.io/codex-zh/remote/", // 配对链接指向的手机端页面
+    relayUrl: "wss://YOUR-RELAY-HOST", // 用 start --relay 或桌面端设置为自建 Worker 地址
+    webUrl: "https://YOUR-PAGES-PROJECT.pages.dev/", // 配对链接指向的网页端
 
     codexCommand: "codex",
     appServerPort: 19271,

@@ -1,4 +1,4 @@
-' Codex-叉叉 远程 daemon 隐藏启动器。
+' Codex Remote 远程 daemon 隐藏启动器。
 '
 ' 计划任务用交互式令牌（InteractiveToken）在用户会话里跑 daemon，好让 daemon 能拉起
 ' 桌面 Codex app-server。但 node.exe 是控制台程序，直接由计划任务启动会弹出一个黑色

@@ -87,7 +87,7 @@ export class AppServer {
     };
     this.#ws = ws;
     await this.request("initialize", {
-      clientInfo: { name: "codex-zh-remote-daemon", version: "0.1.0" },
+      clientInfo: { name: "codex-remote-daemon", version: "0.1.0" },
       // 计划模式（collaborationMode）、thread/goal 等在 experimental 能力门之后
       capabilities: { experimentalApi: true },
     });

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import {
@@ -16,8 +16,10 @@ import {
   issueDeviceToken,
   issuePairToken,
   issueViewerToken,
+  legacyConfigPath,
   loadOrCreateConfig,
   pairUrl,
+  resolveDefaultConfigPath,
 } from "../remote/daemon/src/config.mjs";
 import { parseJsonlChunk, readRolloutWindow, RolloutTail } from "../remote/daemon/src/rollout-tail.mjs";
 
@@ -37,6 +39,23 @@ test("配置初始化：生成密钥与 daemonId 并持久化", () => {
     assert.equal(again.daemonId, config.daemonId);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("默认配置目录使用 ~/.codex-remote，存在旧配置时迁移一份", () => {
+    const home = mkdtempSync(join(tmpdir(), "codex-remote-home-"));
+  try {
+    const oldPath = legacyConfigPath({ home });
+    const newPath = resolveDefaultConfigPath({ home });
+    mkdirSync(dirname(oldPath), { recursive: true });
+    writeFileSync(oldPath, JSON.stringify({ v: 1, daemonId: "legacy", devices: [] }), { flush: false });
+
+    const chosen = resolveDefaultConfigPath({ home, migrateLegacy: true });
+    assert.equal(chosen, newPath);
+    assert.equal(existsSync(newPath), true);
+    assert.equal(loadOrCreateConfig(newPath).daemonId, "legacy");
+  } finally {
+    rmSync(home, { recursive: true, force: true });
   }
 });
 

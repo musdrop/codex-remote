@@ -14,7 +14,7 @@ function tmpHome() {
   return mkdtempSync(join(tmpdir(), "cz-signal-"));
 }
 
-test("writes the signal under ~/.codex-zh/remote/desktop-refresh.json", () => {
+test("writes the signal under ~/.codex-remote/remote/desktop-refresh.json", () => {
   const home = tmpHome();
   try {
     const file = writeDesktopRefreshSignal(

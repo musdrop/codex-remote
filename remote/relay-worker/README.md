@@ -1,8 +1,7 @@
-# 自建 Codex-叉叉 Remote relay（Cloudflare Worker）
+# 自建 Codex Remote relay（Cloudflare Worker）
 
 relay 是零知识转发器：只按 `daemonId` 撮合 daemon 与手机的 WebSocket 连接、
 逐字节转发**端到端加密**的载荷，读不到会话内容，也不持有任何令牌或密钥。
-官方实例是 `relay.wokey.ai`；你也可以用本目录部署自己的 relay。
 
 ## 为什么要自建
 
@@ -13,17 +12,16 @@ relay 是零知识转发器：只按 `daemonId` 撮合 daemon 与手机的 WebSo
 ## 前提
 
 - 一个 Cloudflare 账号（免费版即可）。
-- 一个域名接入 Cloudflare DNS。**`workers.dev` 子域在国内被 DNS 污染不可用**，
-  官方与自建都必须绑定自有域名。
+- 一个域名接入 Cloudflare DNS。若需要国内网络可用性，建议绑定自有域名，
+  不依赖 `workers.dev` 子域。
 - 本机装了 Node.js（用 `npx wrangler`，无需全局安装）。
 
 ## 部署步骤
 
-1. 把 `wrangler.toml` 里的路由改成你的域名：
+1. 按需配置 `wrangler.toml` 里的自定义域名路由：
 
    ```toml
-   # 原：relay.wokey.ai
-   routes = [{ pattern = "relay.你的域名", zone_name = "你的域名" }]
+   routes = [{ pattern = "relay.example.com/*", zone_name = "example.com" }]
    ```
 
    > 用 `zone_name` 路由（叠加在已有 DNS 记录上）还是 `custom_domain`
@@ -32,18 +30,18 @@ relay 是零知识转发器：只按 `daemonId` 撮合 daemon 与手机的 WebSo
    >   wrangler 部署时自动创建并托管 DNS。
    > - 该子域已有记录（如泛解析） → 用 `zone_name` 路由，避免 409 冲突。
 
-2. 登录并部署：
+2. 回到项目根目录，登录并部署：
 
    ```bash
-   cd remote/relay-worker
+   cd ../..
    npx wrangler login      # 首次：浏览器授权
-   npx wrangler deploy
+   npm run deploy:worker
    ```
 
 3. 验证：
 
    ```bash
-   curl https://relay.你的域名/          # 应返回 "codex-zh relay ok"
+   curl https://relay.你的域名/          # 应返回 relay ok 类似文本
    ```
 
 ## 让 daemon 使用你的 relay
@@ -52,7 +50,7 @@ relay 是零知识转发器：只按 `daemonId` 撮合 daemon 与手机的 WebSo
 node remote/daemon/src/main.mjs start --relay wss://relay.你的域名
 ```
 
-`--relay` 会持久化到 `~/.codex-zh/remote/daemon.json`。之后生成的配对码会
+`--relay` 会持久化到 daemon 配置文件（当前默认 `~/.codex-remote/remote/daemon.json`）。之后生成的配对码会
 自动带上这个 relay 地址，手机扫码即用你的实例，无需额外配置。
 
 ## 计费与运维

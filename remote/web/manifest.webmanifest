@@ -1,6 +1,6 @@
 {
-  "name": "C叉叉",
-  "short_name": "C叉叉",
+  "name": "Codex Remote",
+  "short_name": "Remote",
   "description": "在手机上远程查看和接管电脑上的 Codex 会话",
   "lang": "zh-CN",
   "start_url": "./",

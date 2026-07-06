@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Codex-ZH Remote relay —— Node 自托管/本地开发变体
+// Codex Remote relay —— Node 自托管/本地开发变体
 // 与 Cloudflare Worker 版实现相同的转发协议（见 remote/PROTOCOL.md §1）。
 // 用法：node remote/relay-node/server.mjs [--port 8787] [--host 127.0.0.1]
 import { createServer } from "node:http";
@@ -33,7 +33,7 @@ export function createRelayServer({ log = () => {} } = {}) {
 
   const server = createServer((req, res) => {
     res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
-    res.end("codex-zh relay ok\n");
+    res.end("codex-remote relay ok\n");
   });
 
   server.on("upgrade", (req, socket) => {

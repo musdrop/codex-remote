@@ -6,6 +6,12 @@
   "description": "Standalone remote controller for the official Codex desktop/CLI.",
   "license": "MIT",
   "scripts": {
+    "build": "npm run build:desktop:win",
+    "build:desktop:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-desktop-win.ps1",
+    "desktop:win:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File native/Start-CodexRemoteTrayDev.ps1",
+    "deploy": "node scripts/deploy-all.mjs",
+    "deploy:worker": "node scripts/deploy-worker.mjs",
+    "deploy:web": "node scripts/deploy-web.mjs",
     "test": "node --test",
     "remote:daemon": "node scripts/start-daemon.mjs",
     "remote:pair": "node remote/daemon/src/main.mjs pair",

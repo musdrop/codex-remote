@@ -2,7 +2,7 @@
 // 端到端冒烟：relay + daemon（真实 codex app-server）+ 模拟客户端
 // 验证链路：配对握手 -> E2E 加密 -> sessions.list -> session.watch 快照
 // 用法：node remote/scripts/smoke.mjs [--codex <cmd>] [--relay wss://...]
-//   默认在本地拉起 relay-node；--relay 指定外部实例（如线上 wss://relay.wokey.ai）
+//   默认在本地拉起 relay-node；--relay 可指定外部实例（如线上 wss://relay.example.com）
 import { once } from "node:events";
 import { mkdtempSync, rmSync } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
@@ -40,7 +40,7 @@ if (relayUrl) {
   ok(`relay 启动: ${relayUrl}`);
 }
 
-// 2. daemon（独立临时配置，不碰真实 ~/.codex-zh）
+// 2. daemon（独立临时配置，不碰真实 ~/.codex-remote）
 const dir = mkdtempSync(join(tmpdir(), "czr-smoke-"));
 const configPath = join(dir, "daemon.json");
 const config = loadOrCreateConfig(configPath);

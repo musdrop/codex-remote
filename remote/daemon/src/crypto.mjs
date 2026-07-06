@@ -10,7 +10,7 @@ import {
   randomBytes,
 } from "node:crypto";
 
-const HKDF_INFO = "codex-zh-remote-v1";
+const HKDF_INFO = "codex-remote-v1";
 const AAD_C2D = Buffer.from("czr1:c2d");
 const AAD_D2C = Buffer.from("czr1:d2c");
 

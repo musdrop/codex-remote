@@ -1,11 +1,9 @@
-name = "codex-zh-relay"
+name = "codex-remote-relay"
 main = "src/worker.mjs"
 compatibility_date = "2026-06-01"
 
-# 官方实例经 zone 路由绑定 relay.wokey.ai（workers.dev 在国内被 DNS 污染不可用）。
-# 该子域已有 DNS 记录（泛解析到主站），custom_domain 方式会 409 冲突；
-# zone 路由叠加在已代理记录之上，将该主机名流量在回源前截给 Worker，无需改 DNS。
-routes = [{ pattern = "relay.wokey.ai/*", zone_name = "wokey.ai" }]
+# 如需自定义域名，可在 Cloudflare 控制台绑定，或取消下面示例注释并改成自己的域名。
+routes = [{ pattern = "relay.musdrop.top/*", zone_name = "musdrop.top" }]
 
 [[durable_objects.bindings]]
 name = "ROOM"

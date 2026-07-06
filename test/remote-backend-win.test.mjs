@@ -14,6 +14,7 @@ import {
   enable,
   disable,
   run,
+  LEGACY_TASK_NAMES,
 } from "../launcher/win/remote-backend.mjs";
 import { qrMatrix, bmpFromMatrix } from "../launcher/win/qr-bmp.mjs";
 import { loadOrCreateConfig, saveConfig } from "../remote/daemon/src/config.mjs";
@@ -24,9 +25,11 @@ function harness(overrides = {}) {
   const state = { taskExists: false, portOpen: false };
   const deps = makeDeps({
     configPath: join(dir, "daemon.json"),
-    installRoot: "C:\\Program Files\\Codex-ZH",
+    installRoot: "D:\\DevelopProgram\\codex-remote",
     homeDir: dir,
+    nodePath: "C:\\Node\\node.exe",
     userId: "TESTPC\\Tester",
+    resolveCodex: () => ({ command: "C:\\Codex\\codex.exe", source: "path" }),
     runSchtasks: (args) => {
       calls.push(args);
       if (args[0] === "/Create") state.taskExists = true;
@@ -40,13 +43,20 @@ function harness(overrides = {}) {
   return { dir, deps, calls, state, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-test("installPaths 指向 install 内 node/codex/daemon", () => {
-  const p = installPaths("C:\\Program Files\\Codex-ZH");
-  assert.ok(p.node.endsWith("app\\resources\\cua_node\\bin\\node.exe"));
-  assert.ok(p.codexExe.endsWith("app\\resources\\codex.exe"));
+test("installPaths 指向独立便携目录内的 daemon 与当前 Node", () => {
+  const p = installPaths("D:\\DevelopProgram\\codex-remote", {
+    nodePath: "C:\\Node\\node.exe",
+    codexCommand: "C:\\Codex\\codex.exe",
+  });
+  assert.equal(p.node, "C:\\Node\\node.exe");
+  assert.equal(p.codexExe, "C:\\Codex\\codex.exe");
   assert.ok(p.daemonMain.endsWith("remote\\daemon\\src\\main.mjs"));
   assert.ok(p.hiddenLauncher.endsWith("launcher\\win\\run-hidden.vbs"));
-  assert.equal(p.workingDir, "C:\\Program Files\\Codex-ZH");
+  assert.equal(p.workingDir, "D:\\DevelopProgram\\codex-remote");
+});
+
+test("Windows 独立版使用 CodexRemote 任务名", () => {
+  assert.equal(TASK_NAME, "CodexRemote");
 });
 
 test("buildTaskXml：登录触发 + 失败重启 + 无时限 + 动作＝wscript 隐藏跑 daemon", () => {
@@ -61,6 +71,7 @@ test("buildTaskXml：登录触发 + 失败重启 + 无时限 + 动作＝wscript 
   assert.match(xml, /<UserId>PC\\User<\/UserId>/);
   assert.match(xml, /<RestartOnFailure>[\s\S]*<Interval>PT1M<\/Interval>[\s\S]*<Count>999<\/Count>/);
   assert.match(xml, /<ExecutionTimeLimit>PT0S<\/ExecutionTimeLimit>/);
+  assert.match(xml, /<Description>Codex Remote 远程守护进程<\/Description>/);
   assert.match(xml, /<RunLevel>LeastPrivilege<\/RunLevel>/);
   // 动作＝无窗口 wscript 承载 vbs，参数带 vbs/node/main
   assert.match(xml, /<Command>wscript\.exe<\/Command>/);
@@ -72,9 +83,9 @@ test("enable：钉 codexCommand、写 UTF-16 BOM 的任务 XML、Create 后 Run"
   try {
     const res = enable(h.deps);
     assert.equal(res.enabled, true);
-    // codexCommand 钉到 install 内 codex.exe
+    // codexCommand 钉到已解析出的官方 Codex CLI
     const config = loadOrCreateConfig(h.deps.configPath);
-    assert.ok(config.codexCommand.endsWith("app\\resources\\codex.exe"));
+    assert.equal(config.codexCommand, "C:\\Codex\\codex.exe");
     // 任务 XML 与 daemon.json 同目录，且是 UTF-16LE BOM
     const xmlAt = join(h.dir, "remote-task.xml");
     assert.ok(existsSync(xmlAt), "task xml 应写在 config 同目录");
@@ -88,6 +99,26 @@ test("enable：钉 codexCommand、写 UTF-16 BOM 的任务 XML、Create 后 Run"
     assert.ok(kinds.indexOf("/Create") < kinds.indexOf("/Run"));
     const create = h.calls.find((c) => c[0] === "/Create");
     assert.ok(create.includes("/TN") && create.includes(TASK_NAME) && create.includes("/XML") && create.includes("/F"));
+    assert.ok(
+      h.calls.some((c) => c[0] === "/Delete" && c.includes(LEGACY_TASK_NAMES[0])),
+      "启用前应清理旧任务，避免旧 daemon 抢 relay",
+    );
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("enable：找不到官方 Codex CLI 时返回结构化错误且不创建计划任务", () => {
+  const h = harness({
+    resolveCodex: () => {
+      throw new Error("Codex CLI not found");
+    },
+  });
+  try {
+    const res = enable(h.deps);
+    assert.equal(res.enabled, false);
+    assert.match(res.error, /Codex CLI not found/);
+    assert.equal(h.calls.some((c) => c[0] === "/Create"), false);
   } finally {
     h.cleanup();
   }
@@ -102,8 +133,9 @@ test("disable：End 再 Delete /F", () => {
     const kinds = h.calls.map((c) => c[0]);
     assert.ok(kinds.includes("/End"));
     assert.ok(kinds.includes("/Delete"));
-    const del = h.calls.find((c) => c[0] === "/Delete");
+    const del = h.calls.find((c) => c[0] === "/Delete" && c.includes(TASK_NAME));
     assert.ok(del.includes(TASK_NAME) && del.includes("/F"));
+    assert.ok(h.calls.some((c) => c[0] === "/Delete" && c.includes(LEGACY_TASK_NAMES[0])));
   } finally {
     h.cleanup();
   }
@@ -129,7 +161,7 @@ test("run pair：走 core 并附二维码 BMP 路径", async () => {
   const h = harness();
   try {
     const config = loadOrCreateConfig(h.deps.configPath);
-    config.relayUrl = "wss://relay.wokey.ai";
+    config.relayUrl = "wss://relay.example.com";
     config.webUrl = "https://example/remote/";
     saveConfig(h.deps.configPath, config);
 
@@ -145,7 +177,7 @@ test("run pair：走 core 并附二维码 BMP 路径", async () => {
 });
 
 test("QR BMP 编码：长 URL 自动选版本，产出合法 BMP 头与方形尺寸", () => {
-  const url = "https://focuxdot.github.io/codex-zh/remote/#d=" + "A".repeat(220);
+  const url = "https://remote.example.com/#d=" + "A".repeat(220);
   const m = qrMatrix(url, "M");
   assert.ok(m.length >= 33, "长 URL 应选较高版本"); // n 随数据增大
   const bmp = bmpFromMatrix(m, { quiet: 4, targetPx: 480 });

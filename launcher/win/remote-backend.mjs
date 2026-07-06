@@ -1,4 +1,4 @@
-// Windows (Scheduled Task) backend for the tray Remote controller (CodexZhTray.cs).
+// Windows (Scheduled Task) backend for the tray Remote controller (CodexRemoteTray.cs).
 //
 // Same argv-in / single-JSON-out protocol as the macOS backend. The cross-platform
 // command surface lives in ../remote-backend-core.mjs; this file only supplies the
@@ -14,8 +14,10 @@ import { fileURLToPath } from "node:url";
 import { loadOrCreateConfig, saveConfig, defaultConfigPath } from "../../remote/daemon/src/config.mjs";
 import { run as coreRun } from "../remote-backend-core.mjs";
 import { writeQrBmp } from "./qr-bmp.mjs";
+import { resolveCodexCommand } from "../../src/desktop/codex-command.mjs";
 
-export const TASK_NAME = "CodexZhRemote";
+export const TASK_NAME = "CodexRemote";
+export const LEGACY_TASK_NAMES = ["Codex" + "ZhRemote"];
 const APP_SERVER_PORT = 19271; // daemon 拉起的 codex app-server；连得上=引擎在跑
 
 // —— install 内路径解析（backend 位于 <install>\launcher\win）——
@@ -28,9 +30,10 @@ export function installPaths(root) {
   // 显式用 win32.join：这些按定义是 Windows install 路径，写死反斜杠保证在 Mac 上跑
   // 单测也得到确定结果（与 mac 后端用 posix.join 同理）。
   const j = path.win32.join;
+  const opts = typeof arguments[1] === "object" && arguments[1] ? arguments[1] : {};
   return {
-    node: j(root, "app", "resources", "cua_node", "bin", "node.exe"),
-    codexExe: j(root, "app", "resources", "codex.exe"),
+    node: opts.nodePath || j(root, "node", "node.exe"),
+    codexExe: opts.codexCommand || "codex",
     daemonMain: j(root, "remote", "daemon", "src", "main.mjs"),
     hiddenLauncher: j(root, "launcher", "win", "run-hidden.vbs"),
     workingDir: root,
@@ -50,7 +53,7 @@ export function buildTaskXml({ node, daemonMain, workingDir, userId, vbs }) {
   return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>Codex-叉叉 远程接管守护进程</Description>
+    <Description>Codex Remote 远程守护进程</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -126,6 +129,8 @@ export function makeDeps(overrides = {}) {
     configPath: overrides.configPath || defaultConfigPath(),
     installRoot: overrides.installRoot || resolveInstallRoot(),
     homeDir: home,
+    nodePath: overrides.nodePath || process.execPath,
+    resolveCodex: overrides.resolveCodex || ((opts = {}) => resolveCodexCommand(opts)),
     userId: overrides.userId || currentUserId(),
     runSchtasks: overrides.runSchtasks || ((args) => spawnSync("schtasks", args, { encoding: "utf8" })),
     probePort: overrides.probePort || (() => probePortSync(APP_SERVER_PORT)),
@@ -150,9 +155,31 @@ export function isRunning(deps) {
 }
 
 export function enable(deps) {
-  const p = installPaths(deps.installRoot);
-  // daemon 配置：codexCommand 钉到 install 内 codex.exe（根治版本偏差；含空格路径 Node spawn 已验证 OK）
   const config = loadOrCreateConfig(deps.configPath);
+  let codex;
+  try {
+    codex = deps.resolveCodex({
+      env: {
+        ...process.env,
+        CODEX_REMOTE_CODEX:
+          process.env.CODEX_REMOTE_CODEX ||
+          deps.codexCommand ||
+          (config.codexCommand && config.codexCommand !== "codex" ? config.codexCommand : ""),
+      },
+      platform: "win32",
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      enabled: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+  const p = installPaths(deps.installRoot, {
+    nodePath: deps.nodePath,
+    codexCommand: codex.command,
+  });
+  // daemon 配置：codexCommand 钉到用户机器上的官方 Codex CLI（含空格路径 Node spawn 已验证 OK）
   config.codexCommand = p.codexExe;
   saveConfig(deps.configPath, config);
 
@@ -162,6 +189,7 @@ export function enable(deps) {
   // schtasks /XML 需 UTF-16LE + BOM，否则报「任务 XML 格式错误」
   writeFileSync(xmlPath, `﻿${xml}`, "utf16le");
 
+  cleanupLegacyTasks(deps);
   const created = deps.runSchtasks(["/Create", "/TN", TASK_NAME, "/XML", xmlPath, "/F"]);
   if (created.status !== 0) {
     const msg = String(created.stderr || created.stdout || "schtasks 创建计划任务失败").trim();
@@ -175,7 +203,15 @@ export function enable(deps) {
 export function disable(deps) {
   deps.runSchtasks(["/End", "/TN", TASK_NAME]); // 停当前实例，忽略失败
   deps.runSchtasks(["/Delete", "/TN", TASK_NAME, "/F"]);
+  cleanupLegacyTasks(deps);
   return { ok: true, enabled: false };
+}
+
+function cleanupLegacyTasks(deps) {
+  for (const name of LEGACY_TASK_NAMES) {
+    deps.runSchtasks(["/End", "/TN", name]);
+    deps.runSchtasks(["/Delete", "/TN", name, "/F"]);
+  }
 }
 
 // pair/pair-once 额外渲染二维码 BMP，路径回给托盘显示；其余命令原样走 core。
@@ -184,7 +220,7 @@ export async function run(command, rest, deps) {
     const r = await coreRun(command, rest, deps);
     if (r && r.url && !r.error) {
       try {
-        r.qrPath = writeQrBmp(r.url, path.join(tmpdir(), `codex-zh-qr-${process.pid}.bmp`));
+        r.qrPath = writeQrBmp(r.url, path.join(tmpdir(), `codex-remote-qr-${process.pid}.bmp`));
       } catch (err) {
         deps.log(`qr 生成失败: ${err instanceof Error ? err.message : String(err)}`);
       }

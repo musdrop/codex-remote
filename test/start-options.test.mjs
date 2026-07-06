@@ -40,6 +40,27 @@ test("buildStartDaemonOptions lets --codex override discovery", () => {
   assert.equal(options.codexSource, "arg");
 });
 
+test("buildStartDaemonOptions accepts npm-stripped positional codex relay and web args", () => {
+  const options = buildStartDaemonOptions({
+    argv: [
+      "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe",
+      "ws://127.0.0.1:8787",
+      "http://127.0.0.1:4173/",
+    ],
+    exists: (candidate) => candidate === "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe",
+    env: { PATH: "" },
+    platform: "win32",
+  });
+
+  assert.deepEqual(options.overrides, {
+    codexCommand: "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe",
+    relayUrl: "ws://127.0.0.1:8787",
+    webUrl: "http://127.0.0.1:4173/",
+    preventSleep: undefined,
+  });
+  assert.equal(options.codexSource, "arg");
+});
+
 test("buildStartDaemonOptions maps --no-prevent-sleep to false", () => {
   const options = buildStartDaemonOptions({
     argv: ["--no-prevent-sleep"],

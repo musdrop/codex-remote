@@ -17,6 +17,19 @@ test("resolveCodexCommand prefers an explicit command from env", () => {
   assert.equal(result.source, "env");
 });
 
+test("resolveCodexCommand maps the official Windows app shell to the bundled CLI", () => {
+  const result = resolveCodexCommand({
+    env: { CODEX_REMOTE_CODEX: "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe", PATH: "" },
+    exists: (candidate) =>
+      candidate === "E:\\WindowsApps\\OpenAICodex\\app\\Codex.exe" ||
+      candidate === "E:\\WindowsApps\\OpenAICodex\\app\\resources\\codex.exe",
+    platform: "win32",
+  });
+
+  assert.equal(result.command, "E:\\WindowsApps\\OpenAICodex\\app\\resources\\codex.exe");
+  assert.equal(result.source, "env-app-shell");
+});
+
 test("resolveCodexCommand finds codex on PATH", () => {
   const result = resolveCodexCommand({
     env: { PATH: "C:\\One;C:\\Codex\\bin" },
@@ -25,6 +38,17 @@ test("resolveCodexCommand finds codex on PATH", () => {
   });
 
   assert.equal(result.command, "C:\\Codex\\bin\\codex.exe");
+  assert.equal(result.source, "path");
+});
+
+test("resolveCodexCommand finds codex.cmd on Windows PATH", () => {
+  const result = resolveCodexCommand({
+    env: { PATH: "C:\\Users\\me\\AppData\\Roaming\\npm" },
+    exists: (candidate) => candidate === "C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd",
+    platform: "win32",
+  });
+
+  assert.equal(result.command, "C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd");
   assert.equal(result.source, "path");
 });
 

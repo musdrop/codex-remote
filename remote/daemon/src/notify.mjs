@@ -13,7 +13,7 @@ export function buildRequest(n, title, body, link) {
       const base = (n.server || "https://api.day.app").replace(/\/$/, "");
       return {
         url: `${base}/${encodeURIComponent(n.key)}`,
-        init: json({ title, body, group: "Codex-叉叉", ...(link ? { url: link } : {}) }),
+        init: json({ title, body, group: "Codex Remote", ...(link ? { url: link } : {}) }),
       };
     }
     case "serverchan":
@@ -30,7 +30,7 @@ export function buildRequest(n, title, body, link) {
       return { url: n.url, init: json({ msgtype: "text", text: { content: withLink(title, body, link) } }) };
     case "custom":
       // 自定义 webhook：收 {title, body, source, link?}
-      return { url: n.url, init: json({ title, body, source: "codex-zh-remote", ...(link ? { link } : {}) }) };
+      return { url: n.url, init: json({ title, body, source: "codex-remote", ...(link ? { link } : {}) }) };
     default:
       return null;
   }

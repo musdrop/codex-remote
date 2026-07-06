@@ -1,4 +1,4 @@
-// Codex-ZH Remote relay —— Cloudflare Worker + Durable Objects 变体
+// Codex Remote relay —— Cloudflare Worker + Durable Objects 变体
 // 与 remote/relay-node/server.mjs 实现相同的转发协议（见 remote/PROTOCOL.md §1）。
 // 使用 WebSocket Hibernation API：空闲连接不产生 duration 计费。
 
@@ -9,7 +9,7 @@ export default {
     const url = new URL(request.url);
     const match = PATH_RE.exec(url.pathname);
     if (!match) {
-      return new Response("codex-zh relay ok\n", {
+      return new Response("codex-remote relay ok\n", {
         headers: { "content-type": "text/plain; charset=utf-8" },
       });
     }

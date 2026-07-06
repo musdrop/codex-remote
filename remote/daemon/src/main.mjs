@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Codex-ZH Remote daemon 入口
+// Codex Remote daemon 入口
 // 用法：
 //   node remote/daemon/src/main.mjs start [--config <path>] [--relay <wss://...>] [--codex <cmd>]
 //   node remote/daemon/src/main.mjs pair  [--config <path>]
@@ -22,6 +22,7 @@ import {
 import { enforceDevices, watchConfig } from "./config-watch.mjs";
 import { privateKeyFromPem } from "./crypto.mjs";
 import { writeDesktopRefreshSignal } from "./desktop-signal.mjs";
+import { acquireDaemonLock } from "./instance-lock.mjs";
 import { Notifier, redact } from "./notify.mjs";
 import { PowerManager } from "./power.mjs";
 import { RelayLink } from "./relay-link.mjs";
@@ -45,6 +46,8 @@ function log(message) {
 }
 
 export async function startDaemon({ configPath, overrides = {} }) {
+  const instanceLock = acquireDaemonLock(configPath);
+  try {
   const config = loadOrCreateConfig(configPath);
   // win32：daemon 自记日志到 config 同目录的 daemon.log（计划任务无法重定向 stdout）
   if (process.platform === "win32") {
@@ -234,8 +237,13 @@ export async function startDaemon({ configPath, overrides = {} }) {
       for (const session of sessions.values()) session.dispose();
       sessions.clear();
       power.release();
+      instanceLock.release();
     },
   };
+  } catch (err) {
+    instanceLock.release();
+    throw err;
+  }
 }
 
 function pairCommand(configPath) {
