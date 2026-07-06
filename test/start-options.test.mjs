@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { buildStartDaemonOptions } from "../src/desktop/start-options.mjs";
+
+test("buildStartDaemonOptions resolves codex and keeps relay/web overrides", () => {
+  const options = buildStartDaemonOptions({
+    argv: [
+      "--config",
+      "D:\\State\\daemon.json",
+      "--relay",
+      "wss://relay.example.com",
+      "--web",
+      "https://remote.example.com/",
+    ],
+    resolveCodex: () => ({ command: "D:\\Codex\\codex.exe", source: "path" }),
+  });
+
+  assert.deepEqual(options, {
+    configPath: "D:\\State\\daemon.json",
+    codexSource: "path",
+    overrides: {
+      codexCommand: "D:\\Codex\\codex.exe",
+      relayUrl: "wss://relay.example.com",
+      webUrl: "https://remote.example.com/",
+      preventSleep: undefined,
+    },
+  });
+});
+
+test("buildStartDaemonOptions lets --codex override discovery", () => {
+  const options = buildStartDaemonOptions({
+    argv: ["--codex", "D:\\Manual\\codex.exe"],
+    exists: (candidate) => candidate === "D:\\Manual\\codex.exe",
+    env: { PATH: "" },
+    platform: "win32",
+  });
+
+  assert.equal(options.overrides.codexCommand, "D:\\Manual\\codex.exe");
+  assert.equal(options.codexSource, "arg");
+});
+
+test("buildStartDaemonOptions maps --no-prevent-sleep to false", () => {
+  const options = buildStartDaemonOptions({
+    argv: ["--no-prevent-sleep"],
+    resolveCodex: () => ({ command: "codex", source: "path" }),
+  });
+
+  assert.equal(options.overrides.preventSleep, false);
+});
