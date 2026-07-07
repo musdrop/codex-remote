@@ -145,6 +145,9 @@ Copy-FileRelative "launcher\win\qr-bmp.mjs"
 Copy-DirRelative "launcher\win\vendor"
 Copy-FileRelative "scripts\lib\desktop\codex-command.mjs"
 Copy-FileRelative "scripts\lib\desktop\product-config.mjs"
+if (Test-Path (Join-Path $SourceRoot "app\resources\icon.ico")) {
+  Copy-FileRelative "app\resources\icon.ico"
+}
 
 $Csc = Resolve-CSharpCompiler
 $IconFile = Join-Path $SourceRoot "app\resources\icon.ico"

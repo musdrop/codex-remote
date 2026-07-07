@@ -41,3 +41,12 @@ test("Windows 托盘发布态可无参数启动并从安装目录推导运行时
   assert.match(source, /Path\.Combine\(baseDir, "launcher", "win", "remote-backend\.mjs"\)/);
   assert.doesNotMatch(source, /用法: CodexRemoteTray\.exe <nodePath> <backend\.mjs>/);
 });
+
+test("Windows 托盘在启用但未运行时自动轮询状态直到运行", () => {
+  const source = readFileSync("native/CodexRemoteTray.cs", "utf8");
+  assert.match(source, /readonly System\.Windows\.Forms\.Timer statusTimer/);
+  assert.match(source, /statusTimer\.Interval = 1500/);
+  assert.match(source, /void RefreshStatusFromBackend\(\)/);
+  assert.match(source, /if \(enabled && !running\)[\s\S]*StartStatusPolling\(\)/);
+  assert.match(source, /if \(!enabled \|\| running\)[\s\S]*StopStatusPolling\(\)/);
+});

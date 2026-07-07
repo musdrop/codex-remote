@@ -232,6 +232,7 @@ namespace CodexRemote
     class TrayContext : ApplicationContext
     {
         readonly NotifyIcon tray;
+        readonly System.Windows.Forms.Timer statusTimer;
         readonly List<Form> windows = new List<Form>();
 
         // 共享字体：控件不负责释放赋给它的 Font，每次开窗新建会泄漏 GDI 字体对象。
@@ -257,6 +258,14 @@ namespace CodexRemote
             // 每次打开菜单前现取 status 重建（对齐 Mac menuNeedsUpdate，无定时器）。
             // 遵循 Windows 原生约定：仅右键弹菜单（左键不做处理）。
             tray.ContextMenuStrip.Opening += (s, e) => { e.Cancel = false; RebuildMenu(); };
+            statusTimer = new System.Windows.Forms.Timer();
+            statusTimer.Interval = 1500;
+            statusTimer.Tick += (s, e) => RefreshStatusFromBackend();
+            RefreshStatusFromBackend();
+        }
+
+        void RefreshStatusFromBackend()
+        {
             RefreshIcon(Backend.Call("status"));
         }
 
@@ -268,6 +277,18 @@ namespace CodexRemote
             tray.Icon = TrayIcons.Get(s);
             tray.Text = !enabled ? "Codex Remote：未启用"
                       : running ? "Codex Remote：运行中" : "Codex Remote：已启用但未运行";
+            if (enabled && !running) StartStatusPolling();
+            if (!enabled || running) StopStatusPolling();
+        }
+
+        void StartStatusPolling()
+        {
+            if (!statusTimer.Enabled) statusTimer.Start();
+        }
+
+        void StopStatusPolling()
+        {
+            if (statusTimer.Enabled) statusTimer.Stop();
         }
 
         void RebuildMenu()
@@ -368,6 +389,8 @@ namespace CodexRemote
         void DoQuit()
         {
             Backend.Call("disable");
+            StopStatusPolling();
+            statusTimer.Dispose();
             tray.Visible = false;
             tray.Dispose();
             ExitThread();

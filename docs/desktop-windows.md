@@ -35,6 +35,22 @@ dist/desktop/windows/app
 
 这个目录只服务于安装器打包，不作为用户交付物分发。
 
+## 图标预留
+
+如果需要给安装器、托盘程序、卸载程序和快捷方式使用自定义图标，把 `.ico` 文件放到：
+
+```text
+app/resources/icon.ico
+```
+
+下次执行 `npm run build:desktop:win` 时，构建脚本会自动：
+
+- 用该图标编译 `CodexRemoteTray.exe`、`CodexRemoteUninstall.exe` 和安装器。
+- 把该图标复制到安装目录的 `app/resources/icon.ico`。
+- 让桌面/开始菜单快捷方式优先使用这个图标。
+
+如果该文件不存在，构建会继续使用 Windows 默认程序图标。
+
 ## 安装与运行
 
 用户运行安装包后，可以在安装向导中选择安装位置。安装完成后会创建：

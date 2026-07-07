@@ -32,6 +32,8 @@ test("Windows desktop build creates a self-contained C# installer from the stagi
 
 test("Windows setup allows custom install path and creates normal shortcuts", () => {
   const setup = readFileSync(new URL("../native/CodexRemoteSetup.cs", import.meta.url), "utf8");
+  assert.match(setup, /ResolveInstallRoot/);
+  assert.match(setup, /Path\.GetFileName\(full\.TrimEnd/);
   assert.match(setup, /FolderBrowserDialog/);
   assert.match(setup, /LocalApplicationData/);
   assert.match(setup, /Programs/);
@@ -39,6 +41,16 @@ test("Windows setup allows custom install path and creates normal shortcuts", ()
   assert.match(setup, /CreateShortcut\(DesktopShortcutPath/);
   assert.match(setup, /CreateShortcut\(StartMenuShortcutPath/);
   assert.match(setup, /CodexRemoteTray\.exe/);
+});
+
+test("Windows setup reserves app/resources/icon.ico for exe and shortcut icons", () => {
+  const setup = readFileSync(new URL("../native/CodexRemoteSetup.cs", import.meta.url), "utf8");
+  assert.match(setup, /AppIconPath/);
+  assert.match(setup, /Path\.Combine\(installDir, "app", "resources", "icon\.ico"\)/);
+  assert.match(setup, /IconLocation/);
+  assert.match(script, /app\\resources\\icon\.ico/);
+  assert.match(script, /Copy-FileRelative "app\\resources\\icon\.ico"/);
+  assert.match(script, /\/win32icon:\$IconFile/);
 });
 
 test("Windows setup writes HKCU uninstall metadata for the bundled uninstaller", () => {

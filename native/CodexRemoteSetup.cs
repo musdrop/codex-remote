@@ -47,16 +47,34 @@ namespace CodexRemoteSetup
             );
         }
 
-        public static void InstallTo(string installDir)
+        public static string ResolveInstallRoot(string selectedPath)
         {
+            string trimmed = (selectedPath ?? "").Trim();
+            if (String.IsNullOrEmpty(trimmed)) trimmed = DefaultInstallDir();
+            string full = Path.GetFullPath(trimmed);
+            string name = Path.GetFileName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (String.Equals(name, AppName, StringComparison.OrdinalIgnoreCase)) return full;
+            return Path.Combine(full, AppName);
+        }
+
+        public static string AppIconPath(string installDir)
+        {
+            return Path.Combine(installDir, "app", "resources", "icon.ico");
+        }
+
+        public static string InstallTo(string selectedDir)
+        {
+            string installDir = ResolveInstallRoot(selectedDir);
             Directory.CreateDirectory(installDir);
             StopRemote(installDir);
             ExtractPayload(installDir);
 
             string tray = Path.Combine(installDir, "CodexRemoteTray.exe");
-            CreateShortcut(DesktopShortcutPath(), tray, installDir);
-            CreateShortcut(StartMenuShortcutPath(), tray, installDir);
+            string icon = File.Exists(AppIconPath(installDir)) ? AppIconPath(installDir) : tray;
+            CreateShortcut(DesktopShortcutPath(), tray, installDir, icon);
+            CreateShortcut(StartMenuShortcutPath(), tray, installDir, icon);
             WriteUninstallMetadata(installDir);
+            return installDir;
         }
 
         static void StopRemote(string installDir)
@@ -130,7 +148,7 @@ namespace CodexRemoteSetup
             throw new InvalidOperationException("安装器缺少内嵌 payload。");
         }
 
-        static void CreateShortcut(string shortcutPath, string targetPath, string workingDir)
+        static void CreateShortcut(string shortcutPath, string targetPath, string workingDir, string iconPath)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(shortcutPath));
             Type shellType = Type.GetTypeFromProgID("WScript.Shell");
@@ -145,7 +163,7 @@ namespace CodexRemoteSetup
             Type shortcutType = shortcut.GetType();
             shortcutType.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { targetPath });
             shortcutType.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { workingDir });
-            shortcutType.InvokeMember("IconLocation", BindingFlags.SetProperty, null, shortcut, new object[] { targetPath });
+            shortcutType.InvokeMember("IconLocation", BindingFlags.SetProperty, null, shortcut, new object[] { iconPath });
             shortcutType.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
         }
 
@@ -157,7 +175,8 @@ namespace CodexRemoteSetup
                 key.SetValue("DisplayVersion", BuildInfo.Version);
                 key.SetValue("Publisher", "Codex Remote");
                 key.SetValue("InstallLocation", installDir);
-                key.SetValue("DisplayIcon", Path.Combine(installDir, "CodexRemoteTray.exe"));
+                string icon = File.Exists(AppIconPath(installDir)) ? AppIconPath(installDir) : Path.Combine(installDir, "CodexRemoteTray.exe");
+                key.SetValue("DisplayIcon", icon);
                 key.SetValue("UninstallString", Quote(Path.Combine(installDir, "CodexRemoteUninstall.exe")));
                 key.SetValue("NoModify", 1, RegistryValueKind.DWord);
                 key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
@@ -211,7 +230,7 @@ namespace CodexRemoteSetup
 
             var hint = new Label
             {
-                Text = "请选择安装位置。安装后会创建桌面和开始菜单快捷方式。",
+                Text = "请选择安装位置。会在所选位置下创建 Codex Remote 文件夹，并创建桌面和开始菜单快捷方式。",
                 AutoSize = true,
                 ForeColor = Color.DimGray,
                 Margin = new Padding(0, 0, 0, 8),
@@ -245,11 +264,11 @@ namespace CodexRemoteSetup
         {
             using (var dlg = new FolderBrowserDialog())
             {
-                dlg.Description = "选择 Codex Remote 安装目录";
-                dlg.SelectedPath = installDir.Text;
+                dlg.Description = "选择安装位置（将创建 Codex Remote 子文件夹）";
+                dlg.SelectedPath = Path.GetDirectoryName(Program.ResolveInstallRoot(installDir.Text));
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
-                    installDir.Text = dlg.SelectedPath;
+                    installDir.Text = Program.ResolveInstallRoot(dlg.SelectedPath);
                 }
             }
         }
@@ -259,10 +278,10 @@ namespace CodexRemoteSetup
             installButton.Enabled = false;
             try
             {
-                Program.InstallTo(installDir.Text.Trim());
+                string installedDir = Program.InstallTo(installDir.Text.Trim());
                 if (launchAfterInstall.Checked)
                 {
-                    Process.Start(Path.Combine(installDir.Text.Trim(), "CodexRemoteTray.exe"));
+                    Process.Start(Path.Combine(installedDir, "CodexRemoteTray.exe"));
                 }
                 MessageBox.Show(this, "Codex Remote 已安装完成。", "安装完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 Close();
