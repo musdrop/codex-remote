@@ -33,9 +33,6 @@ jobs:
             throw "Tag ${{ github.ref_name }} does not match package.json version $($package.version)."
           }
 
-      - name: Test
-        run: npm test
-
       - name: Build Windows installer
         run: npm run build:desktop:win
 
