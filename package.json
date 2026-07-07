@@ -1,6 +1,6 @@
 {
   "name": "codex-remote",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "Standalone remote controller for the official Codex Desktop app-server.",
