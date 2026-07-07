@@ -104,6 +104,51 @@ dist/desktop/windows/installer/CodexRemote-Setup-<version>.exe
 
 桌面端的详细说明见 [desktop-windows.md](desktop-windows.md)。
 
+## 发布 GitHub Release
+
+仓库提供 tag 触发的 GitHub Actions 发布流程。发布前先确认 `config/product.json` 已写入正式的 relay 与 web 地址，并且本地工作区是干净的。
+
+显式发布指定版本：
+
+```powershell
+npm run release -- 0.2.0
+```
+
+也可以带 `v` 前缀：
+
+```powershell
+npm run release -- v0.2.0
+```
+
+不传版本号时，脚本会基于 `package.json` 当前版本自动递增 patch：
+
+```powershell
+npm run release
+```
+
+发布脚本会做这些事：
+
+1. 计算目标版本。
+2. 要求 Git 工作区干净，避免把未准备的改动混进发布提交。
+3. 更新 `package.json` 的 `version`。
+4. 提交 `chore: release vX.Y.Z`。
+5. 创建 `vX.Y.Z` tag。
+6. 推送当前分支与 tag 到 `origin`。
+
+tag 推送后，`.github/workflows/release.yml` 会在 `windows-latest` 上执行：
+
+1. 校验 tag 与 `package.json` 版本一致。
+2. 运行 `npm test`。
+3. 运行 `npm run build:desktop:win`。
+4. 上传安装包 artifact。
+5. 创建 GitHub Release，并附加 `CodexRemote-Setup-<version>.exe`。
+
+如果只是想预览下一个版本号，可以运行：
+
+```powershell
+npm run release -- --dry-run
+```
+
 ## 自托管 Node relay
 
 本地或自托管也可以使用 Node relay：

@@ -16,3 +16,7 @@ test("package scripts expose separate and combined Cloudflare deployments", () =
   assert.equal(pkg.scripts["deploy:web"], "node scripts/deploy-web.mjs");
   assert.equal(pkg.scripts.deploy, "node scripts/deploy-all.mjs");
 });
+
+test("package scripts expose a tag-based release command", () => {
+  assert.equal(pkg.scripts.release, "node scripts/release.mjs");
+});

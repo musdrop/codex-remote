@@ -12,6 +12,7 @@
     "deploy": "node scripts/deploy-all.mjs",
     "deploy:worker": "node scripts/deploy-worker.mjs",
     "deploy:web": "node scripts/deploy-web.mjs",
+    "release": "node scripts/release.mjs",
     "test": "node --test",
     "remote:daemon": "node scripts/start-daemon.mjs",
     "remote:pair": "node remote/daemon/src/main.mjs pair",

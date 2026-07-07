@@ -101,6 +101,20 @@ Windows 安装包输出到：
 dist/desktop/windows/installer/CodexRemote-Setup-<version>.exe
 ```
 
+正式发布推荐使用 tag 触发 GitHub Actions：
+
+```powershell
+npm run release -- 0.2.0
+```
+
+不传版本号时会基于 `package.json` 当前版本自动递增 patch：
+
+```powershell
+npm run release
+```
+
+该命令会更新 `package.json` 版本、创建发布提交、打 `vX.Y.Z` tag 并推送到 `origin`。GitHub Actions 随后在 Windows runner 上运行测试、构建安装包并创建 GitHub Release。
+
 完整部署流程见 [docs/deployment.md](docs/deployment.md)。Windows 桌面端配置、菜单、构建产物说明见 [docs/desktop-windows.md](docs/desktop-windows.md)。
 
 ## 配置要点
@@ -161,6 +175,7 @@ config/product.json
 | `npm run deploy:worker` | 部署 Cloudflare Worker relay。 |
 | `npm run deploy:web` | 部署 Cloudflare Pages 前端。 |
 | `npm run deploy` | 依次部署 Worker 与 Pages。 |
+| `npm run release` | 递增版本、打 tag、推送并触发 GitHub Release 构建。 |
 
 ## 测试
 
