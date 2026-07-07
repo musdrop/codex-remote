@@ -2,6 +2,8 @@
 
 Codex Remote 是一个独立的 Codex 远程控制项目。它不打包、修改或替换官方 Codex App，而是在用户已安装官方 Codex 的基础上，提供浏览器远程查看、接管和控制能力。
 
+本项目来源于 [focuxdot/codex-zh](https://github.com/focuxdot/codex-zh) 的远程协作子系统抽离与独立化。当前仓库保留并改造了原项目中的 daemon、relay、浏览器前端、配对、端到端加密、围观分享等远程能力；原项目中与 Codex 中文定制安装包、官方 App patch、配置向导等相关的代码不属于本项目目标范围。原始项目地址：[https://github.com/focuxdot/codex-zh](https://github.com/focuxdot/codex-zh)。
+
 典型使用方式是：桌面端运行 Codex Remote daemon，浏览器打开配对链接，通过 relay 与桌面端建立端到端加密连接，然后查看或控制本机 Codex 会话。
 
 ## 架构
