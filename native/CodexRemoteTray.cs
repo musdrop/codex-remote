@@ -4,8 +4,7 @@
 //（argv 子命令进、单个 JSON 出）。系统托盘图标（三态）+ 右键菜单：扫码配对（QR，未开启时
 // 点它即隐式开启远程）、已配对设备、通知设置、停用。二维码 BMP 由后端渲染，这里只显示。
 //
-// 用法：
-//   CodexRemoteTray.exe <nodePath> <backendMjsPath>
+// 开发态可传入 <nodePath> <backendMjsPath>；发布态无参数时从安装目录推导。
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -31,13 +30,10 @@ namespace CodexRemote
         [STAThread]
         static void Main(string[] args)
         {
-            if (args.Length < 2)
-            {
-                MessageBox.Show("用法: CodexRemoteTray.exe <nodePath> <backend.mjs>", "Codex Remote");
-                return;
-            }
-            NodePath = args[0];
-            BackendPath = args[1];
+            RuntimePaths runtime = ResolveRuntimePaths(args);
+            if (runtime == null) return;
+            NodePath = runtime.NodePath;
+            BackendPath = runtime.BackendPath;
 
             // 单实例：命名 Mutex（对齐 Mac 的 flock），已有实例则静默退出
             bool created;
@@ -49,6 +45,41 @@ namespace CodexRemote
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new TrayContext(NodePath, BackendPath));
             }
+        }
+
+        static RuntimePaths ResolveRuntimePaths(string[] args)
+        {
+            if (args.Length >= 2) return new RuntimePaths(args[0], args[1]);
+            if (args.Length == 1)
+            {
+                MessageBox.Show("启动参数不完整。开发态请同时传入 node.exe 与 remote-backend.mjs。", "Codex Remote");
+                return null;
+            }
+
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string node = Path.Combine(baseDir, "node", "node.exe");
+            string backend = Path.Combine(baseDir, "launcher", "win", "remote-backend.mjs");
+            if (!File.Exists(node) || !File.Exists(backend))
+            {
+                MessageBox.Show(
+                    "Codex Remote 安装目录不完整，缺少 node\\node.exe 或 launcher\\win\\remote-backend.mjs。",
+                    "Codex Remote"
+                );
+                return null;
+            }
+            return new RuntimePaths(node, backend);
+        }
+    }
+
+    class RuntimePaths
+    {
+        public readonly string NodePath;
+        public readonly string BackendPath;
+
+        public RuntimePaths(string nodePath, string backendPath)
+        {
+            NodePath = nodePath;
+            BackendPath = backendPath;
         }
     }
 

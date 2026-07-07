@@ -1,8 +1,10 @@
 # Windows 桌面端
 
-Windows 桌面端以便携目录形式分发，不提供安装器。它不内置官方 Codex，只负责找到用户已安装的官方 Codex Desktop 内置 Codex CLI，并启动本项目 daemon。
+Windows 桌面端以安装包形式分发。它不内置官方 Codex，只负责找到用户已安装的官方 Codex Desktop 内置 Codex CLI，并启动本项目 daemon。
 
 ## 构建
+
+构建 Windows 安装包不依赖 Inno Setup、WiX 或 NSIS，只需要 Windows 环境中的 C# 编译器。GitHub Actions `windows-latest` 可直接构建。
 
 构建前先确认 `config/product.json` 已写入正式 relay 与前端地址：
 
@@ -19,38 +21,37 @@ Windows 桌面端以便携目录形式分发，不提供安装器。它不内置
 npm run build:desktop:win
 ```
 
-输出目录：
+最终安装包输出到：
 
 ```text
-dist/desktop/windows/CodexRemote
+dist/desktop/windows/installer/CodexRemote-Setup-<version>.exe
 ```
 
-## 便携目录内容
-
-便携目录包含：
-
-- `CodexRemoteTray.exe`：系统托盘程序。
-- `Start-CodexRemote.cmd`：双击启动托盘。
-- `node/node.exe`：随包携带的 Node 运行时。
-- `config/product.json`：发布者配置。
-- `launcher/`、`remote/daemon/src/`、`src/desktop/`：托盘后端、daemon 与必要工具代码。
-
-便携目录不包含：
-
-- `README.md`
-- `remote/web`
-- `remote/relay-worker`
-- `remote/relay-node`
-
-前端和 Worker 分别部署，不随桌面端一起打包。
-
-## 运行
-
-双击：
+构建过程中会生成内部 staging 目录：
 
 ```text
-Start-CodexRemote.cmd
+dist/desktop/windows/app
 ```
+
+这个目录只服务于安装器打包，不作为用户交付物分发。
+
+## 安装与运行
+
+用户运行安装包后，可以在安装向导中选择安装位置。安装完成后会创建：
+
+- 桌面快捷方式：`Codex Remote`
+- 开始菜单快捷方式：`Codex Remote`
+
+快捷方式直接启动：
+
+```text
+CodexRemoteTray.exe
+```
+
+发布态的 `CodexRemoteTray.exe` 无需脚本或启动参数，会从自身安装目录自动找到：
+
+- `node/node.exe`
+- `launcher/win/remote-backend.mjs`
 
 启动后会出现系统托盘图标。右键托盘图标可以：
 
@@ -64,6 +65,24 @@ Start-CodexRemote.cmd
 - 退出并停止远程。
 
 已有手机配对时，只点“启动远程”即可让手机网页重新连上这台电脑。需要新设备配对时，再点“扫码配对手机”。这两个入口都会在必要时启用 daemon。
+
+## 安装包内容
+
+安装包包含：
+
+- `CodexRemoteTray.exe`：系统托盘程序。
+- `node/node.exe`：随包携带的 Node 运行时。
+- `config/product.json`：发布者配置。
+- `launcher/`、`remote/daemon/src/`、`src/desktop/`：托盘后端、daemon 与必要工具代码。
+
+安装包不包含：
+
+- `README.md`
+- `remote/web`
+- `remote/relay-worker`
+- `remote/relay-node`
+
+前端和 Worker 分别部署，不随桌面端一起打包。
 
 ## Codex Desktop 内置 Codex CLI 查找顺序
 
@@ -102,16 +121,16 @@ app\resources\codex.exe
 
 `relayUrl` 和 `webUrl` 由 `config/product.json` 管理，用户只能查看，不能在托盘中修改。
 
-## 停止行为
+## 停止与卸载
 
 托盘里的“停用远程”和“退出并停止远程”都会：
 
 - 停止 Windows 计划任务。
 - 删除 Windows 计划任务。
 - 清理旧版遗留任务名。
-- 兜底终止当前便携目录/源码目录下残留的 daemon 进程树。
+- 兜底终止当前安装目录/源码目录下残留的 daemon 进程树。
 
-退出托盘不会让远程服务继续在后台运行。
+退出托盘不会让远程服务继续在后台运行。卸载时，安装器也会先调用后端 `disable`，尽量停用计划任务和后台 daemon。
 
 ## 开发托盘
 

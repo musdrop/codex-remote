@@ -32,3 +32,12 @@ test("Windows 托盘窗口留出 DPI 后的内容空间", () => {
   assert.match(source, /Text = "复制配对链接"/);
   assert.doesNotMatch(source, /MiddleTruncate\(LinkForDisplay\(url\), 44\)/);
 });
+
+test("Windows 托盘发布态可无参数启动并从安装目录推导运行时文件", () => {
+  const source = readFileSync("native/CodexRemoteTray.cs", "utf8");
+  assert.match(source, /ResolveRuntimePaths\(args\)/);
+  assert.match(source, /AppDomain\.CurrentDomain\.BaseDirectory/);
+  assert.match(source, /Path\.Combine\(baseDir, "node", "node\.exe"\)/);
+  assert.match(source, /Path\.Combine\(baseDir, "launcher", "win", "remote-backend\.mjs"\)/);
+  assert.doesNotMatch(source, /用法: CodexRemoteTray\.exe <nodePath> <backend\.mjs>/);
+});

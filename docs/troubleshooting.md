@@ -60,7 +60,7 @@ node launcher\win\remote-backend.mjs status
 node launcher\win\remote-backend.mjs disable
 ```
 
-新版 Windows 后端会在停用时兜底清理当前便携目录/源码目录下的 daemon 进程树。
+新版 Windows 后端会在停用时兜底清理当前安装目录/源码目录下的 daemon 进程树。
 
 ## app-server 端口被占用
 

@@ -1,6 +1,7 @@
 param(
   [string]$SourceRoot = "",
-  [string]$OutputRoot = ""
+  [string]$AppStageRoot = "",
+  [string]$InstallerOutputRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,43 +11,112 @@ if (!$SourceRoot) {
 }
 $SourceRoot = [System.IO.Path]::GetFullPath($SourceRoot)
 
-if (!$OutputRoot) {
-  $OutputRoot = Join-Path $SourceRoot "dist\desktop\windows\CodexRemote"
+if (!$AppStageRoot) {
+  $AppStageRoot = Join-Path $SourceRoot "dist\desktop\windows\app"
 }
-$OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
+$AppStageRoot = [System.IO.Path]::GetFullPath($AppStageRoot)
+
+if (!$InstallerOutputRoot) {
+  $InstallerOutputRoot = Join-Path $SourceRoot "dist\desktop\windows\installer"
+}
+$InstallerOutputRoot = [System.IO.Path]::GetFullPath($InstallerOutputRoot)
 
 $expectedDistRoot = [System.IO.Path]::GetFullPath((Join-Path $SourceRoot "dist"))
-if (!$OutputRoot.StartsWith($expectedDistRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-  throw "OutputRoot must be inside $expectedDistRoot"
+foreach ($target in @($AppStageRoot, $InstallerOutputRoot)) {
+  if (!$target.StartsWith($expectedDistRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Build output must be inside $expectedDistRoot"
+  }
 }
 
 $Node = (Get-Command node -ErrorAction Stop).Source
+$Package = Get-Content -Raw (Join-Path $SourceRoot "package.json") | ConvertFrom-Json
+$Version = $Package.version
 
-if (Test-Path $OutputRoot) {
-  Remove-Item -LiteralPath $OutputRoot -Recurse -Force
+function Resolve-CSharpCompiler {
+  $candidates = @(
+    (Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"),
+    (Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe")
+  )
+  foreach ($candidate in $candidates) {
+    if ($candidate -and (Test-Path $candidate)) { return $candidate }
+  }
+
+  $command = Get-Command csc.exe -ErrorAction SilentlyContinue
+  if ($command) { return $command.Source }
+  throw "csc.exe not found. Install .NET Framework developer tools or .NET SDK."
 }
-New-Item -ItemType Directory -Force $OutputRoot | Out-Null
-New-Item -ItemType Directory -Force (Join-Path $OutputRoot "node") | Out-Null
-New-Item -ItemType Directory -Force (Join-Path $OutputRoot "config") | Out-Null
+
+function Invoke-CSharpCompile([string]$OutFile, [string[]]$Sources, [string[]]$References, [string[]]$ExtraArgs = @()) {
+  $args = @(
+    "/nologo",
+    "/target:winexe",
+    "/platform:x64",
+    "/optimize+",
+    "/out:$OutFile"
+  )
+  foreach ($ref in $References) {
+    $args += "/reference:$ref"
+  }
+  $args += $ExtraArgs
+  $args += $Sources
+
+  & $Csc @args
+  if ($LASTEXITCODE -ne 0) {
+    throw "C# compile failed for $OutFile with exit code $LASTEXITCODE."
+  }
+  if (!(Test-Path $OutFile)) {
+    throw "C# compiler did not create $OutFile"
+  }
+}
+
+function Stop-StagedRuntime([string]$Root) {
+  if (!(Test-Path $Root)) { return }
+  $needle = $Root.Replace("/", "\").ToLowerInvariant()
+  $processes = Get-CimInstance Win32_Process | Where-Object {
+    $cmd = [string]($_.CommandLine)
+    $exe = [string]($_.ExecutablePath)
+    $cmd.Replace("/", "\").ToLowerInvariant().Contains($needle) -or
+      $exe.Replace("/", "\").ToLowerInvariant().Contains($needle)
+  }
+  foreach ($proc in $processes) {
+    if ($proc.ProcessId -eq $PID) { continue }
+    & taskkill.exe /PID $proc.ProcessId /T /F *> $null
+  }
+  if ($processes) {
+    Start-Sleep -Milliseconds 500
+  }
+}
+
+Stop-StagedRuntime $AppStageRoot
+
+if (Test-Path $AppStageRoot) {
+  Remove-Item -LiteralPath $AppStageRoot -Recurse -Force
+}
+if (Test-Path $InstallerOutputRoot) {
+  Remove-Item -LiteralPath $InstallerOutputRoot -Recurse -Force
+}
+New-Item -ItemType Directory -Force $AppStageRoot | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $AppStageRoot "node") | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $AppStageRoot "config") | Out-Null
+New-Item -ItemType Directory -Force $InstallerOutputRoot | Out-Null
 
 & (Join-Path $SourceRoot "native\Build-CodexRemoteTray.ps1") `
   -SourceRoot $SourceRoot `
-  -OutFile (Join-Path $OutputRoot "CodexRemoteTray.exe")
+  -OutFile (Join-Path $AppStageRoot "CodexRemoteTray.exe")
 
-Copy-Item -LiteralPath $Node -Destination (Join-Path $OutputRoot "node\node.exe") -Force
-
-Copy-Item -LiteralPath (Join-Path $SourceRoot "config\product.json") -Destination (Join-Path $OutputRoot "config\product.json") -Force
+Copy-Item -LiteralPath $Node -Destination (Join-Path $AppStageRoot "node\node.exe") -Force
+Copy-Item -LiteralPath (Join-Path $SourceRoot "config\product.json") -Destination (Join-Path $AppStageRoot "config\product.json") -Force
 
 function Copy-FileRelative([string]$RelativePath) {
   $src = Join-Path $SourceRoot $RelativePath
-  $dst = Join-Path $OutputRoot $RelativePath
+  $dst = Join-Path $AppStageRoot $RelativePath
   New-Item -ItemType Directory -Force (Split-Path -Parent $dst) | Out-Null
   Copy-Item -LiteralPath $src -Destination $dst -Force
 }
 
 function Copy-DirRelative([string]$RelativePath) {
   $src = Join-Path $SourceRoot $RelativePath
-  $dst = Join-Path $OutputRoot $RelativePath
+  $dst = Join-Path $AppStageRoot $RelativePath
   New-Item -ItemType Directory -Force (Split-Path -Parent $dst) | Out-Null
   Copy-Item -LiteralPath $src -Destination $dst -Recurse -Force
 }
@@ -60,11 +130,41 @@ Copy-DirRelative "launcher\win\vendor"
 Copy-FileRelative "src\desktop\codex-command.mjs"
 Copy-FileRelative "src\desktop\product-config.mjs"
 
-$cmd = @'
-@echo off
-set "ROOT=%~dp0"
-start "" "%ROOT%CodexRemoteTray.exe" "%ROOT%node\node.exe" "%ROOT%launcher\win\remote-backend.mjs"
-'@
-Set-Content -LiteralPath (Join-Path $OutputRoot "Start-CodexRemote.cmd") -Value $cmd -Encoding ASCII
+$Csc = Resolve-CSharpCompiler
+$IconFile = Join-Path $SourceRoot "app\resources\icon.ico"
+$IconArgs = @()
+if (Test-Path $IconFile) {
+  $IconArgs += "/win32icon:$IconFile"
+}
 
-Get-ChildItem $OutputRoot | Select-Object FullName,Length,LastWriteTime
+Invoke-CSharpCompile `
+  -OutFile (Join-Path $AppStageRoot "CodexRemoteUninstall.exe") `
+  -Sources @((Join-Path $SourceRoot "native\CodexRemoteUninstall.cs")) `
+  -References @("System.dll", "System.Windows.Forms.dll") `
+  -ExtraArgs $IconArgs
+
+$PayloadZip = Join-Path $InstallerOutputRoot "CodexRemotePayload.zip"
+Compress-Archive -Path (Join-Path $AppStageRoot "*") -DestinationPath $PayloadZip -Force
+
+$GeneratedVersion = Join-Path $InstallerOutputRoot "CodexRemoteSetupVersion.cs"
+Set-Content -LiteralPath $GeneratedVersion -Encoding UTF8 -Value @"
+namespace CodexRemoteSetup
+{
+    static class BuildInfo
+    {
+        public const string Version = "$Version";
+    }
+}
+"@
+
+$SetupOut = Join-Path $InstallerOutputRoot "CodexRemote-Setup-$Version.exe"
+Invoke-CSharpCompile `
+  -OutFile $SetupOut `
+  -Sources @((Join-Path $SourceRoot "native\CodexRemoteSetup.cs"), $GeneratedVersion) `
+  -References @("System.dll", "System.Drawing.dll", "System.Windows.Forms.dll", "System.IO.Compression.dll") `
+  -ExtraArgs ($IconArgs + @("/resource:$PayloadZip,CodexRemotePayload.zip"))
+
+Remove-Item -LiteralPath $PayloadZip -Force
+Remove-Item -LiteralPath $GeneratedVersion -Force
+
+Get-Item $SetupOut | Select-Object FullName,Length,LastWriteTime

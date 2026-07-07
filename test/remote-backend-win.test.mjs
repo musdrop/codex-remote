@@ -45,7 +45,7 @@ function harness(overrides = {}) {
   return { dir, deps, calls, state, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
-test("installPaths 指向独立便携目录内的 daemon 与当前 Node", () => {
+test("installPaths 指向独立安装目录内的 daemon 与当前 Node", () => {
   const p = installPaths("D:\\DevelopProgram\\codex-remote", {
     nodePath: "C:\\Node\\node.exe",
     codexCommand: "C:\\Codex\\codex.exe",
@@ -110,7 +110,7 @@ test("enable：钉 codexCommand、写 UTF-16 BOM 的任务 XML、Create 后 Run"
   }
 });
 
-test("enable：从便携目录 product.json 写入发布者 relay/web 配置", () => {
+test("enable：从安装目录 product.json 写入发布者 relay/web 配置", () => {
   const root = mkdtempSync(join(tmpdir(), "codex-remote-install-"));
   mkdirSync(join(root, "config"), { recursive: true });
   writeFileSync(

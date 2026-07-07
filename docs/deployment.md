@@ -1,13 +1,13 @@
 # 部署指南
 
-正式部署通常包含三部分：公网 relay、HTTPS 前端、Windows 桌面便携目录。
+正式部署通常包含三部分：公网 relay、HTTPS 前端、Windows 桌面安装包。
 
 ## 部署顺序
 
 1. 部署 relay，得到 `wss://...` 地址。
 2. 部署前端，得到 `https://...` 地址。
 3. 写入 `config/product.json`。
-4. 构建 Windows 便携目录并分发给用户。
+4. 构建 Windows 安装包并分发给用户。
 
 ## 部署 relay
 
@@ -84,25 +84,23 @@ config/product.json
 }
 ```
 
-这两个地址属于发布者配置。构建桌面便携目录时会被复制进去，用户在托盘设置里只能查看。
+这两个地址属于发布者配置。构建桌面安装包时会被复制进去，用户在托盘设置里只能查看。
 
-## 构建 Windows 便携目录
+## 构建 Windows 安装包
+
+构建 Windows 安装包不依赖 Inno Setup、WiX 或 NSIS，只需要 Windows 环境中的 C# 编译器。GitHub Actions `windows-latest` 可直接构建。
 
 ```powershell
 npm run build:desktop:win
 ```
 
-输出目录：
+输出安装包：
 
 ```text
-dist/desktop/windows/CodexRemote
+dist/desktop/windows/installer/CodexRemote-Setup-<version>.exe
 ```
 
-该目录可以直接复制到用户电脑运行：
-
-```powershell
-dist\desktop\windows\CodexRemote\Start-CodexRemote.cmd
-```
+安装向导允许用户选择安装目录，并会创建桌面与开始菜单快捷方式。
 
 桌面端的详细说明见 [desktop-windows.md](desktop-windows.md)。
 

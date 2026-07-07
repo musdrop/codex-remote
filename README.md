@@ -51,6 +51,7 @@ Relay 中转 remote/relay-worker 或 remote/relay-node
 - Windows 官方桌面 App 的 `app\Codex.exe` 是桌面壳；本项目会自动把它映射到 `app\resources\codex.exe`。
 - npm 全局安装产生的 `codex.cmd` 不是桌面端推荐入口，自动检测会跳过这类 shim。
 - 真机手机访问时，前端必须部署到 HTTPS 地址，relay 必须是公网可访问的 `wss://` 地址。
+- 构建 Windows 安装包需要 Windows 环境中的 C# 编译器。GitHub Actions `windows-latest` 可直接构建。
 
 ## 快速开发
 
@@ -84,7 +85,7 @@ npm run desktop:win:dev
 
 1. 部署 relay：`remote/relay-worker` 到 Cloudflare Workers。
 2. 部署前端：`remote/web` 到 Cloudflare Pages 或任意 HTTPS 静态站。
-3. 构建桌面端：编辑 `config/product.json` 后构建 Windows 便携目录。
+3. 构建桌面端：编辑 `config/product.json` 后构建 Windows 安装包。
 
 常用命令：
 
@@ -94,10 +95,10 @@ npm run deploy:web -- --project-name codex-remote-web
 npm run build:desktop:win
 ```
 
-桌面便携目录输出到：
+Windows 安装包输出到：
 
 ```text
-dist/desktop/windows/CodexRemote
+dist/desktop/windows/installer/CodexRemote-Setup-<version>.exe
 ```
 
 完整部署流程见 [docs/deployment.md](docs/deployment.md)。Windows 桌面端配置、菜单、构建产物说明见 [docs/desktop-windows.md](docs/desktop-windows.md)。
@@ -119,7 +120,7 @@ config/product.json
 }
 ```
 
-这两个地址会被复制进桌面便携目录，普通用户在托盘设置里只读查看，不能修改。
+这两个地址会被复制进桌面安装包，普通用户在托盘设置里只读查看，不能修改。
 
 用户侧 daemon 配置默认在：
 
@@ -156,7 +157,7 @@ config/product.json
 | `npm run remote:daemon` | 启动开发用 daemon。 |
 | `npm run remote:pair` | 用当前 daemon 配置生成配对链接。 |
 | `npm run desktop:win:dev` | 编译并启动 Windows 开发托盘。 |
-| `npm run build:desktop:win` | 构建 Windows 便携目录。 |
+| `npm run build:desktop:win` | 构建 Windows 安装包。 |
 | `npm run deploy:worker` | 部署 Cloudflare Worker relay。 |
 | `npm run deploy:web` | 部署 Cloudflare Pages 前端。 |
 | `npm run deploy` | 依次部署 Worker 与 Pages。 |

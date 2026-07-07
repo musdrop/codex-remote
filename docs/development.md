@@ -1,6 +1,6 @@
 # 开发指南
 
-本文记录本地开发和调试常用流程。正式部署请看 [deployment.md](deployment.md)，Windows 便携桌面端请看 [desktop-windows.md](desktop-windows.md)。
+本文记录本地开发和调试常用流程。正式部署请看 [deployment.md](deployment.md)，Windows 桌面端请看 [desktop-windows.md](desktop-windows.md)。
 
 ## 本地三端开发
 
@@ -81,7 +81,7 @@ npm run desktop:win:dev
 - 设置 `CODEX_REMOTE_APP_ROOT` 指向源码根目录。
 - 结束当前源码目录里的旧托盘实例，避免误用旧进程。
 
-开发托盘和便携目录共用用户配置：
+开发托盘和安装版共用用户配置：
 
 ```text
 %USERPROFILE%\.codex-remote\remote\daemon.json
@@ -123,6 +123,6 @@ npm run remote:smoke
 
 - `remote:*` 命令是开发调试入口，不是最终用户的桌面启动界面。
 - 前端和 Worker 不需要构建，直接部署源目录。
-- Windows 便携目录只打包运行 daemon 所需的文件，不包含 `remote/web`、`remote/relay-worker`、`remote/relay-node`。
+- Windows 安装包只打包运行 daemon 所需的文件，不包含 `remote/web`、`remote/relay-worker`、`remote/relay-node`。
 - 若本地已有一个 daemon 占用 `19271`，daemon 会自动尝试下一个可用端口。
 - Windows 自动检测只接受真实 `codex.exe`，不会把 npm 全局安装的 `codex.cmd` 当作 Codex Desktop 内置 Codex CLI。
