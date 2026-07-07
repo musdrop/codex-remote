@@ -17,6 +17,8 @@ test("Windows desktop build copies only runtime slices instead of the whole remo
 test("Windows desktop build creates a self-contained C# installer from the staging app", () => {
   assert.match(script, /\$AppStageRoot/);
   assert.match(script, /\$InstallerOutputRoot/);
+  assert.match(script, /Assert-NodeRuntime/);
+  assert.match(script, /Node\.js 24/);
   assert.match(script, /Stop-StagedRuntime/);
   assert.match(script, /Compress-Archive/);
   assert.match(script, /CodexRemoteSetup\.cs/);

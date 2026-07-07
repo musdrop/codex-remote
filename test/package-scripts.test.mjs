@@ -20,3 +20,7 @@ test("package scripts expose separate and combined Cloudflare deployments", () =
 test("package scripts expose a tag-based release command", () => {
   assert.equal(pkg.scripts.release, "node scripts/release.mjs");
 });
+
+test("package declares the Node runtime required by the bundled daemon", () => {
+  assert.equal(pkg.engines.node, ">=24");
+});

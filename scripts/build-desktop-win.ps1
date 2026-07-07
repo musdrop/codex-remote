@@ -32,6 +32,21 @@ $Node = (Get-Command node -ErrorAction Stop).Source
 $Package = Get-Content -Raw (Join-Path $SourceRoot "package.json") | ConvertFrom-Json
 $Version = $Package.version
 
+function Assert-NodeRuntime([string]$NodePath) {
+  $versionText = (& $NodePath --version).Trim()
+  if ($versionText -notmatch '^v(\d+)\.') {
+    throw "Unable to determine Node.js version from: $versionText"
+  }
+  $major = [int]$Matches[1]
+  if ($major -lt 24) {
+    throw "Node.js 24 or newer is required for the bundled daemon runtime. Current node is $versionText at $NodePath."
+  }
+  $webSocketCheck = & $NodePath -e "process.exit(typeof WebSocket === 'function' ? 0 : 1)"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Node.js runtime must provide global WebSocket for codex app-server. Current node is $versionText at $NodePath."
+  }
+}
+
 function Resolve-CSharpCompiler {
   $candidates = @(
     (Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"),
@@ -87,6 +102,7 @@ function Stop-StagedRuntime([string]$Root) {
   }
 }
 
+Assert-NodeRuntime $Node
 Stop-StagedRuntime $AppStageRoot
 
 if (Test-Path $AppStageRoot) {

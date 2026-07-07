@@ -45,7 +45,7 @@ Relay 中转 remote/relay-worker 或 remote/relay-node
 
 ## 前置条件
 
-- Node.js 20 或更新版本。
+- Node.js 24 或更新版本。Windows 安装包会复制构建机上的 `node.exe`，daemon 运行时需要 Node 24 提供的全局 `WebSocket`。
 - 已安装官方 Codex Desktop，并能在本机运行随包的 `app-server`。
 - 能提供官方 Codex Desktop 安装目录里的 `app\resources\codex.exe`。
 - Windows 官方桌面 App 的 `app\Codex.exe` 是桌面壳；本项目会自动把它映射到 `app\resources\codex.exe`。

@@ -20,6 +20,6 @@
     "remote:smoke": "node remote/scripts/smoke.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   }
 }

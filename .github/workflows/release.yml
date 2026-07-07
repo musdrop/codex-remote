@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Verify release version
         shell: pwsh
@@ -32,6 +32,9 @@ jobs:
           if ($expectedTag -ne "${{ github.ref_name }}") {
             throw "Tag ${{ github.ref_name }} does not match package.json version $($package.version)."
           }
+
+      - name: Test
+        run: npm test
 
       - name: Build Windows installer
         run: npm run build:desktop:win

@@ -10,6 +10,7 @@ test("release workflow is triggered by semantic version tags", () => {
 
 test("release workflow builds the Windows installer and creates a GitHub release", () => {
   assert.match(workflow, /runs-on: windows-latest/);
+  assert.match(workflow, /node-version: 24/);
   assert.match(workflow, /npm test/);
   assert.match(workflow, /npm run build:desktop:win/);
   assert.match(workflow, /gh release create/);
