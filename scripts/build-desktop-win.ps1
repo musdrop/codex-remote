@@ -127,8 +127,8 @@ Copy-FileRelative "launcher\win\remote-backend.mjs"
 Copy-FileRelative "launcher\win\run-hidden.vbs"
 Copy-FileRelative "launcher\win\qr-bmp.mjs"
 Copy-DirRelative "launcher\win\vendor"
-Copy-FileRelative "src\desktop\codex-command.mjs"
-Copy-FileRelative "src\desktop\product-config.mjs"
+Copy-FileRelative "scripts\lib\desktop\codex-command.mjs"
+Copy-FileRelative "scripts\lib\desktop\product-config.mjs"
 
 $Csc = Resolve-CSharpCompiler
 $IconFile = Join-Path $SourceRoot "app\resources\icon.ico"

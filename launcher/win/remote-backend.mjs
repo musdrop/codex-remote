@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
 import { loadOrCreateConfig, saveConfig, defaultConfigPath } from "../../remote/daemon/src/config.mjs";
 import { run as coreRun } from "../remote-backend-core.mjs";
 import { writeQrBmp } from "./qr-bmp.mjs";
-import { resolveCodexCommand } from "../../src/desktop/codex-command.mjs";
-import { loadProductConfig } from "../../src/desktop/product-config.mjs";
+import { resolveCodexCommand } from "../../scripts/lib/desktop/codex-command.mjs";
+import { loadProductConfig } from "../../scripts/lib/desktop/product-config.mjs";
 
 export const TASK_NAME = "CodexRemote";
 export const LEGACY_TASK_NAMES = ["Codex" + "ZhRemote"];

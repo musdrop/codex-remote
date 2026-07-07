@@ -73,7 +73,7 @@ CodexRemoteTray.exe
 - `CodexRemoteTray.exe`：系统托盘程序。
 - `node/node.exe`：随包携带的 Node 运行时。
 - `config/product.json`：发布者配置。
-- `launcher/`、`remote/daemon/src/`、`src/desktop/`：托盘后端、daemon 与必要工具代码。
+- `launcher/`、`remote/daemon/src/`、`scripts/lib/desktop/`：托盘后端、daemon 与必要工具代码。
 
 安装包不包含：
 

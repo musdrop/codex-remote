@@ -3,7 +3,7 @@ import process from "node:process";
 
 import { startDaemon } from "../remote/daemon/src/main.mjs";
 import { defaultConfigPath } from "../remote/daemon/src/config.mjs";
-import { buildStartDaemonOptions } from "../src/desktop/start-options.mjs";
+import { buildStartDaemonOptions } from "./lib/desktop/start-options.mjs";
 
 async function main() {
   const options = buildStartDaemonOptions({ argv: process.argv.slice(2) });

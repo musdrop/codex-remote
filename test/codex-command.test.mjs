@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   buildAppServerArgs,
   resolveCodexCommand,
-} from "../src/desktop/codex-command.mjs";
+} from "../scripts/lib/desktop/codex-command.mjs";
 
 test("resolveCodexCommand prefers an explicit command from env", () => {
   const result = resolveCodexCommand({
@@ -114,7 +114,7 @@ test("resolveCodexCommand returns a useful error when codex is missing", () => {
 });
 
 test("validateBundledCodexCli checks for app-server help output", async () => {
-  const { validateBundledCodexCli } = await import("../src/desktop/codex-command.mjs");
+  const { validateBundledCodexCli } = await import("../scripts/lib/desktop/codex-command.mjs");
   const ok = validateBundledCodexCli("D:\\Codex\\codex.exe", {
     platform: "win32",
     spawn: () => ({
@@ -128,7 +128,7 @@ test("validateBundledCodexCli checks for app-server help output", async () => {
 });
 
 test("validateBundledCodexCli rejects Windows command shims", async () => {
-  const { validateBundledCodexCli } = await import("../src/desktop/codex-command.mjs");
+  const { validateBundledCodexCli } = await import("../scripts/lib/desktop/codex-command.mjs");
   const result = validateBundledCodexCli("C:\\Users\\me\\AppData\\Roaming\\npm\\codex.cmd", {
     platform: "win32",
     spawn: () => {

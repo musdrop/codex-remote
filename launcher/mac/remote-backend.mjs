@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { defaultConfigPath, loadOrCreateConfig, saveConfig } from "../../remote/daemon/src/config.mjs";
-import { resolveOfficialCodexHome } from "../../src/config-merge.mjs";
+import { resolveOfficialCodexHome } from "../../scripts/lib/codex-home.mjs";
 import { run } from "../remote-backend-core.mjs";
 
 // 跨平台命令处理器从 core 直接透传，Swift/测试的导入契约不变

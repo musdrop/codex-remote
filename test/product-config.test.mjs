@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { loadProductConfig, productConfigPath } from "../src/desktop/product-config.mjs";
+import { loadProductConfig, productConfigPath } from "../scripts/lib/desktop/product-config.mjs";
 import { loadOrCreateConfig } from "../remote/daemon/src/config.mjs";
 
 test("loadProductConfig reads relay and web URLs from installRoot/config/product.json", () => {

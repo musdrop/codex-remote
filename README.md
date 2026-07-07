@@ -39,8 +39,8 @@ Relay 中转 remote/relay-worker 或 remote/relay-node
 | `remote/relay-node` | 零依赖 Node relay，适合本地开发或自托管。 |
 | `launcher/` | 桌面托盘/菜单壳可复用的远程后端命令层。 |
 | `native/` | Windows 托盘程序源码与开发启动脚本。 |
-| `src/desktop` | 官方 Codex Desktop 内置 Codex CLI 查找、产品配置等桌面端辅助逻辑。 |
-| `src/deploy` | Cloudflare Worker / Pages 部署脚本辅助逻辑。 |
+| `scripts/lib/desktop` | 官方 Codex Desktop 内置 Codex CLI 查找、产品配置等桌面端辅助逻辑。 |
+| `scripts/lib/deploy` | Cloudflare Worker / Pages 部署脚本辅助逻辑。 |
 | `docs/` | 开发、部署、桌面端、排障等细节文档。 |
 
 ## 前置条件

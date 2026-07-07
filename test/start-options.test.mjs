@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildStartDaemonOptions } from "../src/desktop/start-options.mjs";
+import { buildStartDaemonOptions } from "../scripts/lib/desktop/start-options.mjs";
 
 test("buildStartDaemonOptions resolves codex and keeps relay/web overrides", () => {
   const options = buildStartDaemonOptions({

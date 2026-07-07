@@ -5,7 +5,7 @@ import {
   buildPagesDeployCommand,
   buildWorkerDeployCommand,
   runCloudflareDeploy,
-} from "../src/deploy/cloudflare.mjs";
+} from "../scripts/lib/deploy/cloudflare.mjs";
 
 test("buildWorkerDeployCommand deploys the relay worker from its directory", () => {
   const command = buildWorkerDeployCommand({

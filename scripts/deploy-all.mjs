@@ -5,7 +5,7 @@ import {
   buildPagesDeployCommand,
   buildWorkerDeployCommand,
   runCloudflareDeploy,
-} from "../src/deploy/cloudflare.mjs";
+} from "./lib/deploy/cloudflare.mjs";
 
 const argv = process.argv.slice(2);
 const workerStatus = runCloudflareDeploy(buildWorkerDeployCommand());
